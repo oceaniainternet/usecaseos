@@ -12,6 +12,7 @@ export const useCaseStatusEnum = pgEnum("use_case_status", ["Proposed", "Approve
 export const riskRatingEnum = pgEnum("risk_rating", ["None", "Low", "Medium", "High"]);
 export const dataFlowEnum = pgEnum("data_flow", ["LocalOnly", "VendorTools", "CloudLLM"]);
 export const humanInLoopEnum = pgEnum("human_in_loop", ["Required", "Optional", "None"]);
+export const useCaseGoalEnum = pgEnum("use_case_goal", ["Leads", "Fewer Phone Calls", "Education", "Cost Savings", "Customer Retention", "Efficiency", "Compliance", "Revenue Growth", "Other"]);
 
 // Users table for username/password authentication
 export const users = pgTable("users", {
@@ -50,6 +51,7 @@ export const useCases = pgTable("use_cases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   clientId: varchar("client_id").notNull(),
   title: text("title").notNull(),
+  goal: useCaseGoalEnum("goal").default("Efficiency"),
   industryVertical: text("industry_vertical").notNull(),
   department: text("department").notNull(),
   level: integer("level").notNull().default(1),

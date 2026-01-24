@@ -46,10 +46,24 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Building2, FileText, Sparkles, Loader2 } from "lucide-react";
 
+// Goal options for use cases
+const goalOptions = [
+  "Leads",
+  "Fewer Phone Calls", 
+  "Education",
+  "Cost Savings",
+  "Customer Retention",
+  "Efficiency",
+  "Compliance",
+  "Revenue Growth",
+  "Other"
+] as const;
+
 // Extended form schema for use case creation
 const useCaseFormSchema = z.object({
   clientId: z.string().min(1, "Client is required"),
   title: z.string().min(1, "Title is required"),
+  goal: z.enum(goalOptions).optional(),
   industryVertical: z.string().min(1, "Industry is required"),
   department: z.string().min(1, "Department is required"),
   level: z.coerce.number().min(1).max(3),
@@ -309,6 +323,7 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
     defaultValues: {
       clientId: "",
       title: "",
+      goal: "Efficiency",
       industryVertical: "",
       department: "",
       level: 1,
@@ -436,6 +451,31 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
               <FormControl>
                 <Input placeholder="Upload email list into Mailchimp" {...field} data-testid="input-usecase-title" />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="goal"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Goal</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger data-testid="select-usecase-goal">
+                    <SelectValue placeholder="Select goal" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {goalOptions.map((goal) => (
+                    <SelectItem key={goal} value={goal}>
+                      {goal}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
