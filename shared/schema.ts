@@ -13,6 +13,18 @@ export const riskRatingEnum = pgEnum("risk_rating", ["None", "Low", "Medium", "H
 export const dataFlowEnum = pgEnum("data_flow", ["LocalOnly", "VendorTools", "CloudLLM"]);
 export const humanInLoopEnum = pgEnum("human_in_loop", ["Required", "Optional", "None"]);
 
+// Users table for username/password authentication
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  password: text("password"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Clients table
 export const clients = pgTable("clients", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -85,6 +97,11 @@ export const userClientsRelations = relations(userClients, ({ one }) => ({
 }));
 
 // Insert schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertClientSchema = createInsertSchema(clients).omit({
   id: true,
   createdAt: true,
@@ -102,6 +119,9 @@ export const insertUseCaseSchema = createInsertSchema(useCases).omit({
 });
 
 // Types
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
 export type Client = typeof clients.$inferSelect;
 export type InsertClient = z.infer<typeof insertClientSchema>;
 

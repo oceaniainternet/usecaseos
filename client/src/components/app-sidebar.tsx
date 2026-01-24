@@ -12,18 +12,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   LayoutDashboard,
-  Settings,
   LogOut,
   ChevronUp,
   Workflow,
@@ -48,7 +45,7 @@ const adminNavItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
 
   const initials = user
     ? [user.firstName, user.lastName]
@@ -61,6 +58,10 @@ export function AppSidebar() {
   const displayName = user
     ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || "User"
     : "User";
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   return (
     <Sidebar>
@@ -130,7 +131,6 @@ export function AppSidebar() {
                   data-testid="button-sidebar-user"
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.profileImageUrl || undefined} alt={displayName} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                       {initials}
                     </AvatarFallback>
@@ -150,11 +150,13 @@ export function AppSidebar() {
                 side="top"
                 className="w-[--radix-popper-anchor-width]"
               >
-                <DropdownMenuItem asChild>
-                  <a href="/api/logout" className="cursor-pointer" data-testid="button-sidebar-logout">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Log out
-                  </a>
+                <DropdownMenuItem 
+                  onClick={handleLogout}
+                  className="cursor-pointer" 
+                  data-testid="button-sidebar-logout"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, AuthProvider } from "@/hooks/use-auth";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +14,7 @@ import LandingPage from "@/pages/landing";
 import DashboardPage from "@/pages/dashboard";
 import UseCaseDetailPage from "@/pages/use-case-detail";
 import AdminPage from "@/pages/admin";
+import AuthPage from "@/pages/auth-page";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const style = {
@@ -72,6 +73,7 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={LandingPage} />
+        <Route path="/auth" component={AuthPage} />
         <Route component={LandingPage} />
       </Switch>
     );
@@ -85,8 +87,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="usecaseos-theme">
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <AuthProvider>
+            <Toaster />
+            <Router />
+          </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -2,17 +2,33 @@ import {
   clients, 
   useCases, 
   userClients,
+  users,
   type Client, 
   type InsertClient, 
   type UseCase, 
   type InsertUseCase,
   type UserClient,
-  type InsertUserClient
+  type InsertUserClient,
+  type User,
+  type InsertUser
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, asc, desc } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
+
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
+  // Users
+  getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+
+  // Session store
+  sessionStore: session.Store;
+
   // Clients
   getClients(): Promise<Client[]>;
   getClient(id: string): Promise<Client | undefined>;
@@ -36,6 +52,32 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: false,
+      tableName: 'sessions'
+    });
+  }
+
+  // Users
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
+  }
+
   // Clients
   async getClients(): Promise<Client[]> {
     return await db.select().from(clients).orderBy(asc(clients.name));
@@ -121,9 +163,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async removeUserFromClient(userId: string, clientId: string): Promise<boolean> {
+    const { and } = await import("drizzle-orm");
     await db.delete(userClients)
-      .where(eq(userClients.userId, userId))
-      .where(eq(userClients.clientId, clientId));
+      .where(and(eq(userClients.userId, userId), eq(userClients.clientId, clientId)));
     return true;
   }
 }
