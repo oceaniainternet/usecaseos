@@ -51,7 +51,7 @@ export const useCases = pgTable("use_cases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   clientId: varchar("client_id").notNull(),
   title: text("title").notNull(),
-  goal: useCaseGoalEnum("goal").default("Efficiency"),
+  goals: jsonb("goals").$type<string[]>().default([]),
   industryVertical: text("industry_vertical").notNull(),
   department: text("department").notNull(),
   level: integer("level").notNull().default(1),

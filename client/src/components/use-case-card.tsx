@@ -15,32 +15,40 @@ import { cn } from "@/lib/utils";
 function calculateUseCaseScore(useCase: UseCase): number {
   let score = 0;
 
-  // ROI/Savings Score (0-35 points)
+  // ROI/Savings Score (0-30 points)
   const roi = useCase.roiDollarsPerMonth || 0;
-  if (roi >= 1000) score += 35;
-  else if (roi >= 500) score += 25;
-  else if (roi >= 100) score += 15;
+  if (roi >= 1000) score += 30;
+  else if (roi >= 500) score += 22;
+  else if (roi >= 100) score += 12;
   else if (roi > 0) score += 5;
 
-  // Ease of Implementation (0-25 points) - Lower level = easier
-  if (useCase.level === 1) score += 25;
-  else if (useCase.level === 2) score += 15;
+  // Ease of Implementation (0-20 points) - Lower level = easier
+  if (useCase.level === 1) score += 20;
+  else if (useCase.level === 2) score += 12;
   else if (useCase.level === 3) score += 5;
 
-  // Risk Score (0-20 points) - Lower risk = higher score
-  if (useCase.riskRating === "None") score += 20;
-  else if (useCase.riskRating === "Low") score += 15;
-  else if (useCase.riskRating === "Medium") score += 8;
-  else if (useCase.riskRating === "High") score += 3;
+  // Risk Score (0-15 points) - Lower risk = higher score
+  if (useCase.riskRating === "None") score += 15;
+  else if (useCase.riskRating === "Low") score += 12;
+  else if (useCase.riskRating === "Medium") score += 6;
+  else if (useCase.riskRating === "High") score += 2;
 
-  // Time Savings Score (0-20 points)
+  // Time Savings Score (0-15 points)
   const timeSaved = useCase.roiTimeSavedMinutesPerWeek || 0;
-  if (timeSaved >= 120) score += 20;
-  else if (timeSaved >= 60) score += 15;
-  else if (timeSaved >= 30) score += 10;
-  else if (timeSaved > 0) score += 5;
+  if (timeSaved >= 120) score += 15;
+  else if (timeSaved >= 60) score += 12;
+  else if (timeSaved >= 30) score += 8;
+  else if (timeSaved > 0) score += 4;
 
-  return score;
+  // Goals Score (0-20 points) - More goals = more comprehensive use case
+  const goals = (useCase.goals as string[]) || [];
+  const goalCount = goals.length;
+  if (goalCount >= 4) score += 20;
+  else if (goalCount >= 3) score += 15;
+  else if (goalCount >= 2) score += 10;
+  else if (goalCount >= 1) score += 5;
+
+  return Math.min(score, 100);
 }
 
 function getScoreColor(score: number): string {

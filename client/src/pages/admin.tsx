@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -63,7 +64,7 @@ const goalOptions = [
 const useCaseFormSchema = z.object({
   clientId: z.string().min(1, "Client is required"),
   title: z.string().min(1, "Title is required"),
-  goal: z.enum(goalOptions).optional(),
+  goals: z.array(z.string()).default([]),
   industryVertical: z.string().min(1, "Industry is required"),
   department: z.string().min(1, "Department is required"),
   level: z.coerce.number().min(1).max(3),
@@ -323,7 +324,7 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
     defaultValues: {
       clientId: "",
       title: "",
-      goal: "Efficiency",
+      goals: [],
       industryVertical: "",
       department: "",
       level: 1,
@@ -458,24 +459,35 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
 
         <FormField
           control={form.control}
-          name="goal"
+          name="goals"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Goal</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger data-testid="select-usecase-goal">
-                    <SelectValue placeholder="Select goal" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {goalOptions.map((goal) => (
-                    <SelectItem key={goal} value={goal}>
+              <FormLabel>Goals (select multiple)</FormLabel>
+              <div className="grid grid-cols-3 gap-2 pt-2" data-testid="checkbox-group-goals">
+                {goalOptions.map((goal) => (
+                  <div key={goal} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`goal-${goal}`}
+                      checked={field.value?.includes(goal)}
+                      onCheckedChange={(checked) => {
+                        const currentGoals = field.value || [];
+                        if (checked) {
+                          field.onChange([...currentGoals, goal]);
+                        } else {
+                          field.onChange(currentGoals.filter((g: string) => g !== goal));
+                        }
+                      }}
+                      data-testid={`checkbox-goal-${goal.toLowerCase().replace(/\s+/g, '-')}`}
+                    />
+                    <label
+                      htmlFor={`goal-${goal}`}
+                      className="text-sm font-normal leading-none cursor-pointer"
+                    >
                       {goal}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </label>
+                  </div>
+                ))}
+              </div>
               <FormMessage />
             </FormItem>
           )}

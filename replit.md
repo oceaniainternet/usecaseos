@@ -85,13 +85,18 @@ Test user: phillipb@oceaniainternet.com.au / 123abcd
 - **Score Badge**: Each card displays a prominent score (0-100) in a circle in the upper right corner
 
 ### Use Case Score Calculation
-The score is calculated based on four criteria:
-- **ROI/Savings** (0-35 points): $1000+/mo = 35pts, $500+ = 25pts, $100+ = 15pts
-- **Ease of Implementation** (0-25 points): Level 1 = 25pts, Level 2 = 15pts, Level 3 = 5pts
-- **Risk Level** (0-20 points): None = 20pts, Low = 15pts, Medium = 8pts, High = 3pts
-- **Time Savings** (0-20 points): 120+ min/wk = 20pts, 60+ = 15pts, 30+ = 10pts
+The score is calculated based on five criteria (max 100 points):
+- **ROI/Savings** (0-30 points): $1000+/mo = 30pts, $500+ = 22pts, $100+ = 12pts
+- **Ease of Implementation** (0-20 points): Level 1 = 20pts, Level 2 = 12pts, Level 3 = 5pts
+- **Risk Level** (0-15 points): None = 15pts, Low = 12pts, Medium = 6pts, High = 2pts
+- **Time Savings** (0-15 points): 120+ min/wk = 15pts, 60+ = 12pts, 30+ = 8pts
+- **Goals** (0-20 points): 4+ goals = 20pts, 3 goals = 15pts, 2 goals = 10pts, 1 goal = 5pts
 
 Score colors: Green (80+), Emerald (60-79), Amber (40-59), Orange (20-39), Red (<20)
+
+### Use Case Goals (Multi-Select)
+Goals help categorize what each use case aims to achieve:
+- Leads, Fewer Phone Calls, Education, Cost Savings, Customer Retention, Efficiency, Compliance, Revenue Growth, Other
 
 ### Use Case Detail (/use-cases/:id)
 Four tabs:
