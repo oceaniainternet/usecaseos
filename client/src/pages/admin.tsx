@@ -899,12 +899,16 @@ function EditUseCaseForm({
         industryVertical: values.industryVertical,
         department: values.department,
         taskSummary: values.title,
+        tools: values.tools ? values.tools.split(",").map((t) => t.trim()).filter(Boolean) : [],
+        piiFlag: values.piiFlag,
+        riskRating: values.riskRating,
+        level: values.level,
       });
       const data = await res.json();
       form.setValue("storyToday", data.storyToday);
       form.setValue("storyFuture", data.storyFuture);
       form.setValue("controls", data.controls.join("\n"));
-      toast({ title: "Story generated!" });
+      toast({ title: "Story generated successfully" });
     } catch (e) {
       toast({ title: "Failed to generate story", variant: "destructive" });
     } finally {
