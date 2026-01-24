@@ -45,7 +45,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Building2, FileText, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Building2, FileText, Sparkles, Loader2, Pencil } from "lucide-react";
 
 // Goal options for use cases
 const goalOptions = [
@@ -96,6 +96,8 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 export default function AdminPage() {
   const [clientDialogOpen, setClientDialogOpen] = useState(false);
   const [useCaseDialogOpen, setUseCaseDialogOpen] = useState(false);
+  const [editUseCaseDialogOpen, setEditUseCaseDialogOpen] = useState(false);
+  const [selectedUseCase, setSelectedUseCase] = useState<UseCase | null>(null);
   const { toast } = useToast();
 
   const { data: clients = [], isLoading: clientsLoading } = useQuery<Client[]>({
@@ -218,31 +220,66 @@ export default function AdminPage() {
                   No use cases yet. Add your first use case to get started.
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Client</TableHead>
-                      <TableHead>Level</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Risk</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {useCases.map((uc) => {
-                      const client = clients.find((c) => c.id === uc.clientId);
-                      return (
-                        <TableRow key={uc.id} data-testid={`row-usecase-${uc.id}`}>
-                          <TableCell className="font-medium">{uc.title}</TableCell>
-                          <TableCell>{client?.name || "Unknown"}</TableCell>
-                          <TableCell>Level {uc.level}</TableCell>
-                          <TableCell>{uc.status}</TableCell>
-                          <TableCell>{uc.riskRating}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Level</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Risk</TableHead>
+                        <TableHead className="w-20">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {useCases.map((uc) => {
+                        const client = clients.find((c) => c.id === uc.clientId);
+                        return (
+                          <TableRow key={uc.id} data-testid={`row-usecase-${uc.id}`}>
+                            <TableCell className="font-medium">{uc.title}</TableCell>
+                            <TableCell>{client?.name || "Unknown"}</TableCell>
+                            <TableCell>Level {uc.level}</TableCell>
+                            <TableCell>{uc.status}</TableCell>
+                            <TableCell>{uc.riskRating}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setSelectedUseCase(uc);
+                                  setEditUseCaseDialogOpen(true);
+                                }}
+                                data-testid={`button-edit-usecase-${uc.id}`}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+
+                  {/* Edit Use Case Dialog */}
+                  <Dialog open={editUseCaseDialogOpen} onOpenChange={setEditUseCaseDialogOpen}>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Edit Use Case</DialogTitle>
+                      </DialogHeader>
+                      {selectedUseCase && (
+                        <EditUseCaseForm 
+                          useCase={selectedUseCase} 
+                          clients={clients} 
+                          onSuccess={() => {
+                            setEditUseCaseDialogOpen(false);
+                            setSelectedUseCase(null);
+                          }} 
+                        />
+                      )}
+                    </DialogContent>
+                  </Dialog>
+                </>
               )}
             </CardContent>
           </Card>
@@ -784,6 +821,499 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
         <Button type="submit" className="w-full" disabled={createUseCase.isPending} data-testid="button-submit-usecase">
           {createUseCase.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Create Use Case
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
+// Edit Use Case Form Component
+function EditUseCaseForm({ 
+  useCase, 
+  clients, 
+  onSuccess 
+}: { 
+  useCase: UseCase; 
+  clients: Client[]; 
+  onSuccess: () => void 
+}) {
+  const { toast } = useToast();
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const form = useForm<UseCaseFormValues>({
+    resolver: zodResolver(useCaseFormSchema),
+    defaultValues: {
+      clientId: String(useCase.clientId),
+      title: useCase.title,
+      goals: (useCase.goals as string[]) || [],
+      industryVertical: useCase.industryVertical,
+      department: useCase.department || "",
+      level: useCase.level,
+      status: useCase.status as "Proposed" | "Approved" | "Building" | "Live" | "Optimising" | "Paused",
+      riskRating: useCase.riskRating as "None" | "Low" | "Medium" | "High",
+      piiFlag: useCase.piiFlag || false,
+      dataFlow: useCase.dataFlow as "LocalOnly" | "VendorTools" | "CloudLLM",
+      humanInLoop: useCase.humanInLoop as "Required" | "Optional" | "None",
+      storyToday: useCase.storyToday || "",
+      storyFuture: useCase.storyFuture || "",
+      controls: (useCase.controls as string[])?.join("\n") || "",
+      tools: (useCase.tools as string[])?.join(", ") || "",
+      baselineMinutesPerRun: useCase.baselineMinutesPerRun || 0,
+      frequencyPerWeek: useCase.frequencyPerWeek || 0,
+      roiTimeSavedMinutesPerWeek: useCase.roiTimeSavedMinutesPerWeek || 0,
+      roiDollarsPerMonth: useCase.roiDollarsPerMonth || 0,
+    },
+  });
+
+  const updateUseCase = useMutation({
+    mutationFn: async (data: UseCaseFormValues) => {
+      const payload = {
+        ...data,
+        clientId: data.clientId,
+        controls: data.controls ? data.controls.split("\n").filter(Boolean) : [],
+        tools: data.tools ? data.tools.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      };
+      const res = await apiRequest("PATCH", `/api/use-cases/${useCase.id}`, payload);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/use-cases"] });
+      toast({ title: "Use case updated successfully" });
+      onSuccess();
+    },
+    onError: () => {
+      toast({ title: "Failed to update use case", variant: "destructive" });
+    },
+  });
+
+  const generateStory = async () => {
+    const values = form.getValues();
+    if (!values.title || !values.industryVertical || !values.department) {
+      toast({ title: "Please fill in title, industry, and department first", variant: "destructive" });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const res = await apiRequest("POST", "/api/story-generate", {
+        industryVertical: values.industryVertical,
+        department: values.department,
+        taskSummary: values.title,
+      });
+      const data = await res.json();
+      form.setValue("storyToday", data.storyToday);
+      form.setValue("storyFuture", data.storyFuture);
+      form.setValue("controls", data.controls.join("\n"));
+      toast({ title: "Story generated!" });
+    } catch (e) {
+      toast({ title: "Failed to generate story", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit((data) => updateUseCase.mutate(data))} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="clientId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Client</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger data-testid="select-edit-client">
+                      <SelectValue placeholder="Select client" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={String(client.id)}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="industryVertical"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Industry</FormLabel>
+                <FormControl>
+                  <Input placeholder="Healthcare" {...field} data-testid="input-edit-industry" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input placeholder="Use case title" {...field} data-testid="input-edit-title" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="goals"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Goals (select multiple)</FormLabel>
+              <div className="grid grid-cols-3 gap-2 pt-2" data-testid="checkbox-group-edit-goals">
+                {goalOptions.map((goal) => (
+                  <div key={goal} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`edit-goal-${goal}`}
+                      checked={field.value?.includes(goal)}
+                      onCheckedChange={(checked) => {
+                        const currentGoals = field.value || [];
+                        if (checked) {
+                          field.onChange([...currentGoals, goal]);
+                        } else {
+                          field.onChange(currentGoals.filter((g: string) => g !== goal));
+                        }
+                      }}
+                      data-testid={`checkbox-edit-goal-${goal.toLowerCase().replace(/\s+/g, '-')}`}
+                    />
+                    <label
+                      htmlFor={`edit-goal-${goal}`}
+                      className="text-sm font-normal leading-none cursor-pointer"
+                    >
+                      {goal}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Department</FormLabel>
+                <FormControl>
+                  <Input placeholder="Marketing" {...field} data-testid="input-edit-department" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="level"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Level</FormLabel>
+                <Select onValueChange={field.onChange} value={String(field.value)}>
+                  <FormControl>
+                    <SelectTrigger data-testid="select-edit-level">
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="1">Level 1 - Tool-assisted</SelectItem>
+                    <SelectItem value="2">Level 2 - No-code automation</SelectItem>
+                    <SelectItem value="3">Level 3 - AI embedded</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger data-testid="select-edit-status">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Proposed">Proposed</SelectItem>
+                    <SelectItem value="Approved">Approved</SelectItem>
+                    <SelectItem value="Building">Building</SelectItem>
+                    <SelectItem value="Live">Live</SelectItem>
+                    <SelectItem value="Optimising">Optimising</SelectItem>
+                    <SelectItem value="Paused">Paused</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="riskRating"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Risk Rating</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger data-testid="select-edit-risk">
+                      <SelectValue placeholder="Select risk" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="None">None</SelectItem>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="dataFlow"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Data Flow</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger data-testid="select-edit-dataflow">
+                      <SelectValue placeholder="Select data flow" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="LocalOnly">Local Only</SelectItem>
+                    <SelectItem value="VendorTools">Vendor Tools</SelectItem>
+                    <SelectItem value="CloudLLM">Cloud LLM</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="humanInLoop"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Human in Loop</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger data-testid="select-edit-humaninloop">
+                      <SelectValue placeholder="Select requirement" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Required">Required</SelectItem>
+                    <SelectItem value="Optional">Optional</SelectItem>
+                    <SelectItem value="None">None</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="piiFlag"
+          render={({ field }) => (
+            <FormItem className="flex items-center gap-3 space-y-0">
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  data-testid="switch-edit-pii"
+                />
+              </FormControl>
+              <FormLabel className="font-normal">Contains Personal Data (PII)</FormLabel>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="tools"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tools (comma-separated)</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Mailchimp, Zapier, ChatGPT" 
+                  {...field}
+                  data-testid="input-edit-tools"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium">Story Mode</h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={generateStory}
+            disabled={isGenerating}
+            data-testid="button-edit-generate-story"
+          >
+            {isGenerating ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            Generate Story
+          </Button>
+        </div>
+
+        <FormField
+          control={form.control}
+          name="storyToday"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Current Workflow</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Describe the current manual process..."
+                  className="min-h-24"
+                  {...field}
+                  data-testid="textarea-edit-story-today"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="storyFuture"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Future Workflow (numbered steps)</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="1. Step one&#10;2. Step two&#10;3. Step three"
+                  className="min-h-24"
+                  {...field}
+                  data-testid="textarea-edit-story-future"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="controls"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Controls (one per line)</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="No diagnosis&#10;Redact PII&#10;Escalate to human"
+                  className="min-h-20"
+                  {...field}
+                  data-testid="textarea-edit-controls"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="baselineMinutesPerRun"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Baseline Minutes/Run</FormLabel>
+                <FormControl>
+                  <Input type="number" min="0" {...field} data-testid="input-edit-baseline-minutes" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="frequencyPerWeek"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Frequency/Week</FormLabel>
+                <FormControl>
+                  <Input type="number" min="0" {...field} data-testid="input-edit-frequency" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="roiTimeSavedMinutesPerWeek"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Time Saved (min/week)</FormLabel>
+                <FormControl>
+                  <Input type="number" min="0" {...field} data-testid="input-edit-time-saved" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="roiDollarsPerMonth"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>ROI ($/month)</FormLabel>
+                <FormControl>
+                  <Input type="number" min="0" {...field} data-testid="input-edit-roi-dollars" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <Button type="submit" className="w-full" disabled={updateUseCase.isPending} data-testid="button-update-usecase">
+          {updateUseCase.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Update Use Case
         </Button>
       </form>
     </Form>
