@@ -8,7 +8,7 @@ UseCaseOS is a SaaS web application that helps consultants create and manage "Us
 - **UI Components**: Tailwind CSS + shadcn/ui
 - **Backend**: Express.js + Node.js
 - **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Replit Auth (OIDC)
+- **Authentication**: Username/password with Passport.js local strategy
 - **State Management**: TanStack React Query
 
 ## Project Structure
@@ -65,12 +65,15 @@ UseCaseOS is a SaaS web application that helps consultants create and manage "Us
 - `POST /api/story-generate` - Generate story content (template-based)
 
 ## Authentication
-Uses Replit Auth with OIDC. Routes:
-- `/api/login` - Begin login flow
-- `/api/logout` - Begin logout flow
-- `/api/auth/user` - Get current user (protected)
+Uses username/password authentication with Passport.js local strategy. Routes:
+- `POST /api/register` - Create new account (body: {email, password, firstName?, lastName?})
+- `POST /api/login` - Login (body: {email, password})
+- `POST /api/logout` - Logout current session
+- `GET /api/user` - Get current authenticated user
 
 All API endpoints (except auth) require authentication via `isAuthenticated` middleware.
+
+Test user: phillipb@oceaniainternet.com.au / 123abcd
 
 ## Features
 
@@ -79,6 +82,16 @@ All API endpoints (except auth) require authentication via `isAuthenticated` mid
 - Filters: Level, Status, Risk Rating, PII Only
 - Stats: Total use cases, Live count, Time saved, Monthly ROI
 - Cards show: Title, Level badge, Status badge, Risk badge, PII indicator, ROI summary
+- **Score Badge**: Each card displays a prominent score (0-100) in a circle in the upper right corner
+
+### Use Case Score Calculation
+The score is calculated based on four criteria:
+- **ROI/Savings** (0-35 points): $1000+/mo = 35pts, $500+ = 25pts, $100+ = 15pts
+- **Ease of Implementation** (0-25 points): Level 1 = 25pts, Level 2 = 15pts, Level 3 = 5pts
+- **Risk Level** (0-20 points): None = 20pts, Low = 15pts, Medium = 8pts, High = 3pts
+- **Time Savings** (0-20 points): 120+ min/wk = 20pts, 60+ = 15pts, 30+ = 10pts
+
+Score colors: Green (80+), Emerald (60-79), Amber (40-59), Orange (20-39), Red (<20)
 
 ### Use Case Detail (/use-cases/:id)
 Four tabs:

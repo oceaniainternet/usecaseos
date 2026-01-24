@@ -12,6 +12,53 @@ import {
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 
+function calculateUseCaseScore(useCase: UseCase): number {
+  let score = 0;
+
+  // ROI/Savings Score (0-35 points)
+  const roi = useCase.roiDollarsPerMonth || 0;
+  if (roi >= 1000) score += 35;
+  else if (roi >= 500) score += 25;
+  else if (roi >= 100) score += 15;
+  else if (roi > 0) score += 5;
+
+  // Ease of Implementation (0-25 points) - Lower level = easier
+  if (useCase.level === 1) score += 25;
+  else if (useCase.level === 2) score += 15;
+  else if (useCase.level === 3) score += 5;
+
+  // Risk Score (0-20 points) - Lower risk = higher score
+  if (useCase.riskRating === "None") score += 20;
+  else if (useCase.riskRating === "Low") score += 15;
+  else if (useCase.riskRating === "Medium") score += 8;
+  else if (useCase.riskRating === "High") score += 3;
+
+  // Time Savings Score (0-20 points)
+  const timeSaved = useCase.roiTimeSavedMinutesPerWeek || 0;
+  if (timeSaved >= 120) score += 20;
+  else if (timeSaved >= 60) score += 15;
+  else if (timeSaved >= 30) score += 10;
+  else if (timeSaved > 0) score += 5;
+
+  return score;
+}
+
+function getScoreColor(score: number): string {
+  if (score >= 80) return "bg-green-500 text-white";
+  if (score >= 60) return "bg-emerald-500 text-white";
+  if (score >= 40) return "bg-amber-500 text-white";
+  if (score >= 20) return "bg-orange-500 text-white";
+  return "bg-red-500 text-white";
+}
+
+function getScoreRingColor(score: number): string {
+  if (score >= 80) return "ring-green-500/30";
+  if (score >= 60) return "ring-emerald-500/30";
+  if (score >= 40) return "ring-amber-500/30";
+  if (score >= 20) return "ring-orange-500/30";
+  return "ring-red-500/30";
+}
+
 interface UseCaseCardProps {
   useCase: UseCase;
   rank?: number;
@@ -44,16 +91,28 @@ const levelColors: Record<number, string> = {
 export function UseCaseCard({ useCase, rank, isDragging, dragHandleProps }: UseCaseCardProps) {
   const timeSavedPerWeek = useCase.roiTimeSavedMinutesPerWeek || 0;
   const dollarsPerMonth = useCase.roiDollarsPerMonth || 0;
+  const score = calculateUseCaseScore(useCase);
 
   return (
     <Card 
       className={cn(
-        "hover-elevate transition-all cursor-pointer group",
+        "hover-elevate transition-all cursor-pointer group relative",
         isDragging && "ring-2 ring-primary shadow-lg"
       )}
     >
+      <div 
+        className={cn(
+          "absolute -top-3 -right-3 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-lg ring-4",
+          getScoreColor(score),
+          getScoreRingColor(score)
+        )}
+        data-testid={`score-${useCase.id}`}
+        title={`Score: ${score}/100 - Based on ROI, ease of implementation, risk level, and time savings`}
+      >
+        {score}
+      </div>
       <Link href={`/use-cases/${useCase.id}`}>
-        <CardHeader className="pb-3 flex flex-row items-start gap-3">
+        <CardHeader className="pb-3 flex flex-row items-start gap-3 pr-12">
           {dragHandleProps && (
             <div 
               {...dragHandleProps}
