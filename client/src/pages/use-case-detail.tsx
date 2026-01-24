@@ -211,6 +211,28 @@ export default function UseCaseDetailPage() {
 
         {/* Story Mode Tab */}
         <TabsContent value="story" className="space-y-6 mt-6">
+          {/* Persona Story - Full Width Featured Card */}
+          {useCase.personaStory && (
+            <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  The Story
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">A real-world narrative for your {useCase.industryVertical} practice</p>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm dark:prose-invert max-w-none" data-testid="text-persona-story">
+                  {useCase.personaStory.split("\n\n").map((paragraph, i) => (
+                    <p key={i} className="text-sm leading-relaxed mb-4 last:mb-0">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader className="pb-3">

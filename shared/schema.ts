@@ -62,6 +62,7 @@ export const useCases = pgTable("use_cases", {
   humanInLoop: humanInLoopEnum("human_in_loop").notNull().default("Required"),
   storyToday: text("story_today"),
   storyFuture: text("story_future"),
+  personaStory: text("persona_story"),
   controls: jsonb("controls").$type<string[]>().default([]),
   tools: jsonb("tools").$type<string[]>().default([]),
   baselineMinutesPerRun: integer("baseline_minutes_per_run").default(0),
@@ -156,5 +157,6 @@ export type StoryGeneratorInput = z.infer<typeof storyGeneratorInputSchema>;
 export type StoryGeneratorOutput = {
   storyToday: string;
   storyFuture: string;
+  personaStory: string;
   controls: string[];
 };

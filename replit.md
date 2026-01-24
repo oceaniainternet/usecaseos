@@ -45,6 +45,7 @@ UseCaseOS is a SaaS web application that helps consultants create and manage "Us
 - dataFlow: LocalOnly, VendorTools, CloudLLM
 - humanInLoop: Required, Optional, None
 - storyToday, storyFuture (workflow descriptions)
+- personaStory (auto-generated narrative with real-world personas)
 - controls (guardrails array)
 - tools (tools used array)
 - ROI metrics: baselineMinutesPerRun, frequencyPerWeek, roiTimeSavedMinutesPerWeek, roiDollarsPerMonth
@@ -101,18 +102,22 @@ Goals help categorize what each use case aims to achieve:
 ### Use Case Detail (/use-cases/:id)
 Four tabs:
 1. **Overview**: Details, level, status, department, tools
-2. **Story Mode**: Current workflow vs Future automated workflow
+2. **Story Mode**: Persona story narrative + Current workflow vs Future automated workflow
 3. **Risk & Trust**: Risk rating, PII flag, data flow, human-in-loop, controls
 4. **ROI**: Baseline time, time saved, estimated monthly value
 
 ### Admin Panel (/admin)
 - **Clients Tab**: Create/view clients
-- **Use Cases Tab**: Create/view use cases with story generator
+- **Use Cases Tab**: Create/view/edit use cases with story generator
 
 ### Story Generator
 Template-based generation (no LLM required) for:
-- Current workflow description
-- Future automated workflow steps
+- **Persona Story**: Rich narrative using real-world names and industry-specific language
+  - Podiatry pilot: Uses personas like Dr. Sarah Mitchell, Karen (Practice Manager), Mrs. Henderson (patient)
+  - Includes podiatry terminology: diabetic foot assessment, orthotics, wound care
+  - Adapts narrative style based on automation level (1, 2, or 3)
+- Current workflow description (storyToday)
+- Future automated workflow steps (storyFuture)
 - Controls/guardrails (with healthcare-specific safeguards)
 
 ## Seed Data

@@ -75,6 +75,7 @@ const useCaseFormSchema = z.object({
   humanInLoop: z.enum(["Required", "Optional", "None"]),
   storyToday: z.string().optional(),
   storyFuture: z.string().optional(),
+  personaStory: z.string().optional(),
   controls: z.string().optional(),
   tools: z.string().optional(),
   baselineMinutesPerRun: z.coerce.number().min(0),
@@ -372,6 +373,7 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
       humanInLoop: "Required",
       storyToday: "",
       storyFuture: "",
+      personaStory: "",
       controls: "",
       tools: "",
       baselineMinutesPerRun: 0,
@@ -422,6 +424,7 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
       const data = await res.json();
       form.setValue("storyToday", data.storyToday);
       form.setValue("storyFuture", data.storyFuture);
+      form.setValue("personaStory", data.personaStory);
       form.setValue("controls", data.controls.join("\n"));
       toast({ title: "Story generated successfully" });
     } catch (error) {
@@ -743,6 +746,27 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
 
         <FormField
           control={form.control}
+          name="personaStory"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Persona Story (auto-generated narrative)</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Click 'Generate Story' to create a persona-based narrative..."
+                  className="min-h-32 bg-muted/50"
+                  readOnly
+                  {...field}
+                  data-testid="textarea-persona-story"
+                />
+              </FormControl>
+              <p className="text-xs text-muted-foreground">This story uses real-world personas and industry-specific language for client presentations.</p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="controls"
           render={({ field }) => (
             <FormItem>
@@ -856,6 +880,7 @@ function EditUseCaseForm({
       humanInLoop: useCase.humanInLoop as "Required" | "Optional" | "None",
       storyToday: useCase.storyToday || "",
       storyFuture: useCase.storyFuture || "",
+      personaStory: useCase.personaStory || "",
       controls: (useCase.controls as string[])?.join("\n") || "",
       tools: (useCase.tools as string[])?.join(", ") || "",
       baselineMinutesPerRun: useCase.baselineMinutesPerRun || 0,
@@ -907,6 +932,7 @@ function EditUseCaseForm({
       const data = await res.json();
       form.setValue("storyToday", data.storyToday);
       form.setValue("storyFuture", data.storyFuture);
+      form.setValue("personaStory", data.personaStory);
       form.setValue("controls", data.controls.join("\n"));
       toast({ title: "Story generated successfully" });
     } catch (e) {
@@ -1233,6 +1259,27 @@ function EditUseCaseForm({
                   data-testid="textarea-edit-story-future"
                 />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="personaStory"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Persona Story (auto-generated narrative)</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Click 'Generate Story' to create a persona-based narrative..."
+                  className="min-h-32 bg-muted/50"
+                  readOnly
+                  {...field}
+                  data-testid="textarea-edit-persona-story"
+                />
+              </FormControl>
+              <p className="text-xs text-muted-foreground">This story uses real-world personas and industry-specific language for client presentations.</p>
               <FormMessage />
             </FormItem>
           )}

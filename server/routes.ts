@@ -5,11 +5,30 @@ import { setupAuth, isAuthenticated } from "./auth";
 import { insertClientSchema, insertUseCaseSchema, storyGeneratorInputSchema, type StoryGeneratorOutput } from "@shared/schema";
 import { z } from "zod";
 
+// Podiatry-specific persona names and scenarios
+const podiatryPersonas = {
+  practitioner: ["Dr. Sarah Mitchell", "Dr. James Chen", "Dr. Emily Watson", "Dr. Michael Torres"],
+  practiceManager: ["Karen", "Lisa", "Amanda", "Rachel"],
+  receptionist: ["Megan", "Sophie", "Emma", "Nicole"],
+  patient: ["Mrs. Henderson", "Mr. Patel", "Mrs. O'Brien", "Mr. Thompson", "Mrs. Garcia"],
+};
+
+const podiatryTerms = {
+  conditions: ["diabetic foot assessment", "ingrown toenail treatment", "custom orthotics fitting", "heel pain consultation", "wound care management", "nail fungus treatment"],
+  procedures: ["biomechanical assessment", "gait analysis", "diabetic foot screening", "orthotic adjustment", "nail surgery", "wound debridement"],
+  equipment: ["3D foot scanner", "pressure plate", "doppler ultrasound", "sterilization unit", "orthotic casting materials"],
+};
+
+function getRandomElement<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 // Story generator templates (deterministic, no LLM)
 function generateStory(input: z.infer<typeof storyGeneratorInputSchema>): StoryGeneratorOutput {
   const { industryVertical, department, taskSummary, tools, piiFlag, riskRating, level } = input;
   
-  const isHealthcare = industryVertical.toLowerCase().includes("podiatry") || 
+  const isPodiatry = industryVertical.toLowerCase().includes("podiatry");
+  const isHealthcare = isPodiatry || 
                        industryVertical.toLowerCase().includes("health") ||
                        industryVertical.toLowerCase().includes("medical");
 
@@ -43,6 +62,76 @@ function generateStory(input: z.infer<typeof storyGeneratorInputSchema>): StoryG
 6. Results are delivered and performance is logged`;
   }
 
+  // Generate persona-based narrative story
+  let personaStory = "";
+  
+  if (isPodiatry) {
+    const practitioner = getRandomElement(podiatryPersonas.practitioner);
+    const manager = getRandomElement(podiatryPersonas.practiceManager);
+    const receptionist = getRandomElement(podiatryPersonas.receptionist);
+    const patient = getRandomElement(podiatryPersonas.patient);
+    const condition = getRandomElement(podiatryTerms.conditions);
+    const toolsUsed = tools.length > 0 ? tools.join(" and ") : "practice management software";
+
+    if (level === 1) {
+      personaStory = `Meet ${manager}, Practice Manager at a busy podiatry clinic.
+
+Every week, ${manager} struggled with "${taskSummary}". The process was manual, time-consuming, and prone to errors. ${receptionist} at the front desk would often spend hours on this task instead of focusing on patient care.
+
+"I was spending my entire Monday morning just on this," ${manager} recalls. "It was frustrating because I knew there had to be a better way."
+
+Now, with ${toolsUsed} as an assistive tool, ${manager}'s workflow has transformed. The system provides smart templates and suggestions, while ${manager} maintains full control over final decisions.
+
+${practitioner} noticed the difference immediately. "Our ${department} team is more efficient, and ${manager} can focus on what really matters - ensuring ${patient} and other patients receive the best possible care for their ${condition}."
+
+The result? What once took hours now takes minutes, with better accuracy and a happier team.`;
+    } else if (level === 2) {
+      personaStory = `It's 6:00 AM at the clinic, and something remarkable is happening - ${taskSummary} is running automatically, without anyone lifting a finger.
+
+${manager}, the Practice Manager, used to dread this task. "Before automation, I'd come in early just to handle this manually," she explains. "Now ${toolsUsed} handles the heavy lifting while I'm still having my morning coffee."
+
+The no-code automation triggers on schedule, syncs data across systems, and delivers results to the right place. ${receptionist} gets a notification when it's complete, ready for a quick review.
+
+${practitioner} appreciates the clinical impact: "Our ${department} runs smoother now. When ${patient} comes in for their ${condition}, we're not scrambling with paperwork. The system has already prepared everything we need."
+
+${manager} smiles when she thinks about the transformation. "We've saved hours every week. More importantly, we've reduced errors and our team is less stressed. That translates directly to better patient care."`;
+    } else {
+      personaStory = `"I never thought AI could help with something as nuanced as ${taskSummary}," admits ${practitioner}, lead podiatrist at the clinic. "I was skeptical at first."
+
+That skepticism faded quickly. The AI-embedded workflow now monitors for trigger conditions, analyzes context intelligently, and executes tasks within carefully defined guardrails - all while ${practitioner} focuses on treating patients like ${patient} for their ${condition}.
+
+${manager} in ${department} oversees the system. "The AI doesn't make decisions in a vacuum," she clarifies. "It's trained on our workflows, respects our clinical protocols, and always flags edge cases for human review. ${piiFlag ? "Patient privacy is paramount - all PII is handled securely and logged for compliance." : ""}"
+
+${receptionist} at the front desk loves it too. "Patients notice the difference. We're more responsive, more organized. When ${patient} called about her appointment, I had all the information at my fingertips."
+
+${practitioner} sums it up: "It's not about replacing human judgment - it's about augmenting it. ${riskRating === 'High' || riskRating === 'Medium' ? "For high-stakes decisions, a human always reviews before action. That's non-negotiable." : ""} The AI handles the routine so we can focus on the complex cases that truly need our expertise."`;
+    }
+  } else if (isHealthcare) {
+    // Generic healthcare narrative
+    personaStory = `In a busy healthcare practice, the ${department} team faced a common challenge: "${taskSummary}" was consuming valuable time that could be spent on patient care.
+
+The Practice Manager knew something had to change. "Our staff was overwhelmed with administrative tasks. We needed a solution that would streamline operations without compromising on care quality or compliance."
+
+${level === 1 ? `Now, with tool-assisted workflows, the team has the best of both worlds - smart technology that suggests and assists, while experienced staff make the final calls.` : level === 2 ? `The no-code automation solution transformed their daily routine. Tasks that once required manual intervention now run automatically, freeing up the team to focus on what matters most - their patients.` : `The AI-embedded system brought a new level of intelligence to their operations. By analyzing patterns and making smart decisions within defined guardrails, the technology handles routine cases while flagging anything that needs human expertise.`}
+
+${piiFlag ? `Patient privacy remains paramount. All personal health information is handled according to HIPAA guidelines, with full audit trails for compliance.` : ""}
+
+${riskRating === 'High' || riskRating === 'Medium' ? `For decisions that carry clinical weight, human review is always required. Technology assists, but healthcare professionals remain in control.` : ""}
+
+The result? A practice that runs more efficiently, a team that's less stressed, and patients who receive better, more attentive care.`;
+  } else {
+    // Generic business narrative
+    personaStory = `The ${department} team had a problem that will sound familiar to many: "${taskSummary}" was eating up hours every week.
+
+"We knew we needed to modernize," the team lead explained. "But we also needed a solution that our team could actually use without a steep learning curve."
+
+${level === 1 ? `They found their answer in a tool-assisted approach. The new system provides intelligent suggestions and templates, but keeps humans in the driver's seat for final decisions. It's the best of both worlds - technology that enhances human judgment rather than replacing it.` : level === 2 ? `A no-code automation platform became the solution. Once configured, the workflow runs on schedule, syncing data across ${tools.length > 0 ? tools.join(" and ") : "connected systems"} and delivering results without manual intervention. The team receives notifications when everything's complete, ready for a quick review.` : `An AI-powered system now handles the complexity. It monitors for triggers, analyzes context, and makes smart decisions within predefined guardrails. For edge cases or high-stakes decisions, it knows when to pause and involve a human.`}
+
+The transformation was immediate. "What used to take us half a day now happens in minutes," the team lead reports. "And the accuracy has improved because we've eliminated the human error that comes with repetitive manual tasks."
+
+More importantly, the team can now focus on strategic work that actually moves the needle, rather than getting bogged down in routine operations.`;
+  }
+
   // Generate controls/guardrails
   const controls: string[] = [];
   
@@ -73,7 +162,7 @@ function generateStory(input: z.infer<typeof storyGeneratorInputSchema>): StoryG
     controls.push("Error notification to team lead");
   }
 
-  return { storyToday, storyFuture, controls };
+  return { storyToday, storyFuture, personaStory, controls };
 }
 
 export async function registerRoutes(
