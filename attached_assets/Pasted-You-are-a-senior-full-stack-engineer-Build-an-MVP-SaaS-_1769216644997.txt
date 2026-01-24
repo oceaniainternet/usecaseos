@@ -1,0 +1,125 @@
+You are a senior full-stack engineer. Build an MVP SaaS web app called “UseCaseOS” that lets a consultant create and manage “Use Case Story Cards” for clients (industry verticals like podiatry). The app must be client-login friendly and show a dashboard of use cases with status, levels, risk, and ROI.
+
+TECH STACK (Replit-friendly):
+- Next.js 14 (App Router) + TypeScript
+- Tailwind CSS + shadcn/ui
+- Supabase (Postgres + Auth) OR (if Supabase not possible) use SQLite with Prisma + NextAuth
+- No external paid dependencies required to run locally.
+- Provide seed data.
+
+CORE FEATURES:
+1) Authentication & Roles
+- Login (email/password)
+- Roles: ADMIN (consultant), CLIENT (customer)
+- Admin can create clients and assign users to a client account.
+- Client can only view their own use cases (read-only for MVP).
+
+2) Data Model (Use Case Story Card)
+Create a “use_cases” table with:
+- id (uuid)
+- client_id (uuid)
+- title (string)
+- industry_vertical (string) e.g. “Podiatry”
+- department (string) e.g. “Marketing / Front Desk / Admin”
+- level (int: 1,2,3) with labels:
+  Level 1: Tool-assisted (manual)
+  Level 2: No-code automation (connected tools)
+  Level 3: AI embedded workflow (agentic/decisioning)
+- status (enum): Proposed, Approved, Building, Live, Optimising, Paused
+- risk_rating (enum): None, Low, Medium, High
+- pii_flag (boolean) // true if touches patient/customer personal data
+- data_flow (enum): LocalOnly, VendorTools, CloudLLM
+- human_in_loop (enum): Required, Optional, None
+- story_today (text) // “current workflow”
+- story_future (text) // “future workflow steps”
+- controls (json array of strings) // guardrails e.g. “No diagnosis”, “Redact PII”, “Escalate to human”
+- tools (json array of strings) // e.g. “Mailchimp”, “Meta Business Suite”, “Zapier”, “ChatGPT”
+- baseline_minutes_per_run (int)
+- frequency_per_week (int)
+- roi_time_saved_minutes_per_week (int)
+- roi_dollars_per_month (int)
+- last_run_at (timestamp, nullable)
+- next_run_at (timestamp, nullable)
+- created_at, updated_at
+
+Also create a “clients” table:
+- id (uuid), name, industry_vertical, created_at
+
+And user-to-client mapping.
+
+3) UI PAGES
+A) /dashboard
+- Show cards in a grid with filters:
+  - Level (1/2/3)
+  - Status
+  - Risk rating
+  - PII flag
+- Each card displays:
+  - Title
+  - Level badge
+  - Status badge
+  - Risk + PII badge
+  - ROI summary: “X min/week saved” and “$Y/mo”
+  - Last updated
+
+B) /use-cases/[id]
+Tabs:
+- Overview: Title, Level, Status, Department, Tools
+- Story Mode:
+  - “Today” section (story_today)
+  - “Future” section (story_future) as numbered steps
+- Risk & Trust:
+  - risk_rating, pii_flag, data_flow, human_in_loop
+  - controls list
+- ROI:
+  - baseline_minutes_per_run, frequency_per_week
+  - calculated fields:
+     baseline_time_per_week = baseline_minutes_per_run * frequency_per_week
+     saved_time_per_week = roi_time_saved_minutes_per_week
+     estimated_value_per_month = roi_dollars_per_month
+
+C) /admin (ADMIN only)
+- Create/edit Clients
+- Create/edit Use Cases
+- Assign users to clients
+
+4) “Story Generator” (MVP version)
+Implement a simple server action or API route:
+POST /api/story-generate
+Input fields:
+- industry_vertical, department, task_summary, tools, pii_flag, risk_rating, level
+Output:
+- story_today, story_future, controls
+For MVP, generate using deterministic templates (NO external LLM calls).
+(Leave an interface to later swap in OpenAI/Claude.)
+
+5) Seed Data
+Include podiatry examples:
+- “Upload email list into Mailchimp”
+- “Generate and schedule FB posts”
+- “Instagram DM auto-responder (no diagnosis, escalate)”
+Ensure at least one high risk PII example.
+
+6) Quality requirements
+- Clean UI, minimal, modern
+- Mobile responsive
+- Type-safe DB access
+- Show empty states and loading states
+- Include README with setup steps and environment variables.
+
+7) PRIORITY & ORDERING
+- Each Use Case has a priority_order integer field.
+- Dashboard defaults to sorting by priority_order ascending.
+- Implement drag-and-drop reordering of Use Case cards.
+- Persist updated priority_order on drop.
+- Show visible priority rank on each card (e.g. #1, #2).
+- Client users can view priority order; only ADMIN can reorder.
+
+DELIVERABLES
+- Working app in Replit
+- SQL migration or Prisma schema
+- Seed script
+- README
+
+IMPORTANT: No medical claims. Use wording that the system does not replace clinical care. Add guardrails in the story templates for healthcare verticals (podiatry).
+Second, make  ui simple, clean and easy for navigation. 
