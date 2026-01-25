@@ -45,7 +45,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Building2, FileText, Sparkles, Loader2, Pencil } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Building2, FileText, Sparkles, Loader2, Pencil, ChevronDown } from "lucide-react";
 
 // Goal options for use cases
 const goalOptions = [
@@ -73,6 +74,7 @@ const useCaseFormSchema = z.object({
   piiFlag: z.boolean(),
   dataFlow: z.enum(["LocalOnly", "VendorTools", "CloudLLM"]),
   humanInLoop: z.enum(["Required", "Optional", "None"]),
+  customerFrustrations: z.string().optional(),
   storyToday: z.string().optional(),
   storyFuture: z.string().optional(),
   personaStory: z.string().optional(),
@@ -371,6 +373,7 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
       piiFlag: false,
       dataFlow: "LocalOnly",
       humanInLoop: "Required",
+      customerFrustrations: "",
       storyToday: "",
       storyFuture: "",
       personaStory: "",
@@ -420,6 +423,7 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
         piiFlag: values.piiFlag,
         riskRating: values.riskRating,
         level: values.level,
+        customerFrustrations: values.customerFrustrations || "",
       });
       const data = await res.json();
       form.setValue("storyToday", data.storyToday);
@@ -706,6 +710,36 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
           </Button>
         </div>
 
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button type="button" variant="ghost" size="sm" className="w-full justify-between text-muted-foreground hover:text-foreground" data-testid="button-expand-frustrations">
+              <span className="text-xs">Add customer frustrations for richer stories</span>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2">
+            <FormField
+              control={form.control}
+              name="customerFrustrations"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer Frustrations</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder='e.g., "This is a huge distraction when we get an Instagram message" or "We lose hours every week just on data entry"'
+                      className="min-h-20"
+                      {...field}
+                      data-testid="textarea-customer-frustrations"
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">Real quotes or pain points from customers - these feed into the AI story generator for authentic narratives.</p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CollapsibleContent>
+        </Collapsible>
+
         <FormField
           control={form.control}
           name="storyToday"
@@ -878,6 +912,7 @@ function EditUseCaseForm({
       piiFlag: useCase.piiFlag || false,
       dataFlow: useCase.dataFlow as "LocalOnly" | "VendorTools" | "CloudLLM",
       humanInLoop: useCase.humanInLoop as "Required" | "Optional" | "None",
+      customerFrustrations: useCase.customerFrustrations || "",
       storyToday: useCase.storyToday || "",
       storyFuture: useCase.storyFuture || "",
       personaStory: useCase.personaStory || "",
@@ -928,6 +963,7 @@ function EditUseCaseForm({
         piiFlag: values.piiFlag,
         riskRating: values.riskRating,
         level: values.level,
+        customerFrustrations: values.customerFrustrations || "",
       });
       const data = await res.json();
       form.setValue("storyToday", data.storyToday);
@@ -1225,6 +1261,36 @@ function EditUseCaseForm({
             Generate Story
           </Button>
         </div>
+
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button type="button" variant="ghost" size="sm" className="w-full justify-between text-muted-foreground hover:text-foreground" data-testid="button-edit-expand-frustrations">
+              <span className="text-xs">Add customer frustrations for richer stories</span>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2">
+            <FormField
+              control={form.control}
+              name="customerFrustrations"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer Frustrations</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder='e.g., "This is a huge distraction when we get an Instagram message" or "We lose hours every week just on data entry"'
+                      className="min-h-20"
+                      {...field}
+                      data-testid="textarea-edit-customer-frustrations"
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">Real quotes or pain points from customers - these feed into the AI story generator.</p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CollapsibleContent>
+        </Collapsible>
 
         <FormField
           control={form.control}

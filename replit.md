@@ -120,6 +120,11 @@ Four tabs:
 - Future automated workflow steps (storyFuture)
 - Controls/guardrails (with healthcare-specific safeguards)
 
+**Customer Frustrations Context** (collapsible field near Generate Story button):
+- Add real customer quotes/pain points (e.g., "This is a huge distraction when we get an Instagram message")
+- Claude incorporates these frustrations into the narrative with matching language and emotional tone
+- Makes stories more authentic and relatable for client presentations
+
 Falls back to template-based generation if AI is unavailable.
 
 ## Seed Data

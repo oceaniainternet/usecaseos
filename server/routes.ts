@@ -324,7 +324,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
       }
       
-      const { industryVertical, department, taskSummary, tools, piiFlag, riskRating, level } = parsed.data;
+      const { industryVertical, department, taskSummary, tools, piiFlag, riskRating, level, customerFrustrations } = parsed.data;
       
       // Determine level description
       const levelDescriptions: Record<number, string> = {
@@ -332,6 +332,11 @@ export async function registerRoutes(
         2: "No-code automation (workflow runs automatically with triggers)",
         3: "AI-embedded (intelligent automation with decision-making within guardrails)"
       };
+
+      // Build frustrations context if provided
+      const frustrationContext = customerFrustrations && customerFrustrations.trim() 
+        ? `\nCustomer Frustrations/Quotes: "${customerFrustrations}"\n(IMPORTANT: Incorporate these real customer frustrations into the narrative - use similar language and emotional tone)`
+        : "";
 
       const prompt = `You are a business consultant writing compelling use case stories for healthcare/medical practices. Generate a story for the following automation use case:
 
@@ -341,7 +346,7 @@ Task: ${taskSummary}
 Tools Used: ${tools.length > 0 ? tools.join(", ") : "Not specified"}
 Automation Level: Level ${level} - ${levelDescriptions[level]}
 Contains Personal Data (PII): ${piiFlag ? "Yes" : "No"}
-Risk Rating: ${riskRating}
+Risk Rating: ${riskRating}${frustrationContext}
 
 Please generate the following in JSON format:
 {

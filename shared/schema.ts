@@ -63,6 +63,7 @@ export const useCases = pgTable("use_cases", {
   piiFlag: boolean("pii_flag").notNull().default(false),
   dataFlow: dataFlowEnum("data_flow").notNull().default("LocalOnly"),
   humanInLoop: humanInLoopEnum("human_in_loop").notNull().default("Required"),
+  customerFrustrations: text("customer_frustrations"),
   storyToday: text("story_today"),
   storyFuture: text("story_future"),
   personaStory: text("persona_story"),
@@ -153,6 +154,7 @@ export const storyGeneratorInputSchema = z.object({
   piiFlag: z.boolean(),
   riskRating: z.enum(["None", "Low", "Medium", "High"]),
   level: z.number().min(1).max(3),
+  customerFrustrations: z.string().optional(),
 });
 
 export type StoryGeneratorInput = z.infer<typeof storyGeneratorInputSchema>;
