@@ -84,10 +84,66 @@ export const useCases = pgTable("use_cases", {
   index("use_cases_priority_idx").on(table.priorityOrder),
 ]);
 
+// Marketplace use cases (template library)
+export const marketplaceUseCases = pgTable("marketplace_use_cases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  industryVertical: text("industry_vertical").notNull(),
+  department: text("department").notNull(),
+  level: integer("level").notNull().default(1),
+  goals: jsonb("goals").$type<string[]>().default([]),
+  riskRating: riskRatingEnum("risk_rating").notNull().default("None"),
+  piiFlag: boolean("pii_flag").notNull().default(false),
+  dataFlow: dataFlowEnum("data_flow").notNull().default("LocalOnly"),
+  humanInLoop: humanInLoopEnum("human_in_loop").notNull().default("Required"),
+  storyToday: text("story_today"),
+  storyFuture: text("story_future"),
+  personaStory: text("persona_story"),
+  controls: jsonb("controls").$type<string[]>().default([]),
+  tools: jsonb("tools").$type<string[]>().default([]),
+  baselineMinutesPerRun: integer("baseline_minutes_per_run").default(0),
+  frequencyPerWeek: integer("frequency_per_week").default(0),
+  roiTimeSavedMinutesPerWeek: integer("roi_time_saved_minutes_per_week").default(0),
+  roiDollarsPerMonth: integer("roi_dollars_per_month").default(0),
+  cloneCount: integer("clone_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("marketplace_use_cases_industry_idx").on(table.industryVertical),
+]);
+
+// Marketplace ratings (one rating per user per marketplace use case)
+export const marketplaceRatings = pgTable("marketplace_ratings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  marketplaceUseCaseId: varchar("marketplace_use_case_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  rating: integer("rating").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("marketplace_ratings_use_case_idx").on(table.marketplaceUseCaseId),
+  index("marketplace_ratings_user_idx").on(table.userId),
+]);
+
 // Relations
 export const clientsRelations = relations(clients, ({ many }) => ({
   useCases: many(useCases),
   userClients: many(userClients),
+}));
+
+export const marketplaceUseCasesRelations = relations(marketplaceUseCases, ({ many }) => ({
+  ratings: many(marketplaceRatings),
+}));
+
+export const marketplaceRatingsRelations = relations(marketplaceRatings, ({ one }) => ({
+  marketplaceUseCase: one(marketplaceUseCases, {
+    fields: [marketplaceRatings.marketplaceUseCaseId],
+    references: [marketplaceUseCases.id],
+  }),
+  user: one(users, {
+    fields: [marketplaceRatings.userId],
+    references: [users.id],
+  }),
 }));
 
 export const useCasesRelations = relations(useCases, ({ one }) => ({
@@ -126,6 +182,26 @@ export const insertUseCaseSchema = createInsertSchema(useCases).omit({
   updatedAt: true,
 });
 
+export const insertMarketplaceUseCaseSchema = createInsertSchema(marketplaceUseCases).omit({
+  id: true,
+  createdAt: true,
+  cloneCount: true,
+});
+
+export const insertMarketplaceRatingSchema = createInsertSchema(marketplaceRatings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const cloneMarketplaceUseCaseSchema = z.object({
+  clientId: z.string().min(1, "Client ID is required"),
+});
+
+export const rateMarketplaceUseCaseSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -138,6 +214,18 @@ export type InsertUserClient = z.infer<typeof insertUserClientSchema>;
 
 export type UseCase = typeof useCases.$inferSelect;
 export type InsertUseCase = z.infer<typeof insertUseCaseSchema>;
+
+export type MarketplaceUseCase = typeof marketplaceUseCases.$inferSelect;
+export type InsertMarketplaceUseCase = z.infer<typeof insertMarketplaceUseCaseSchema>;
+
+export type MarketplaceRating = typeof marketplaceRatings.$inferSelect;
+export type InsertMarketplaceRating = z.infer<typeof insertMarketplaceRatingSchema>;
+
+export type MarketplaceUseCaseWithRating = MarketplaceUseCase & {
+  averageRating: number;
+  ratingCount: number;
+  userRating?: number;
+};
 
 // Level labels
 export const levelLabels: Record<number, string> = {

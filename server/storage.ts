@@ -3,6 +3,8 @@ import {
   useCases, 
   userClients,
   users,
+  marketplaceUseCases,
+  marketplaceRatings,
   type Client, 
   type InsertClient, 
   type UseCase, 
@@ -10,10 +12,15 @@ import {
   type UserClient,
   type InsertUserClient,
   type User,
-  type InsertUser
+  type InsertUser,
+  type MarketplaceUseCase,
+  type InsertMarketplaceUseCase,
+  type MarketplaceRating,
+  type InsertMarketplaceRating,
+  type MarketplaceUseCaseWithRating
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, asc, desc } from "drizzle-orm";
+import { eq, asc, desc, and, sql, avg, count } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -49,6 +56,14 @@ export interface IStorage {
   getUserClients(userId: string): Promise<UserClient[]>;
   addUserToClient(mapping: InsertUserClient): Promise<UserClient>;
   removeUserFromClient(userId: string, clientId: string): Promise<boolean>;
+
+  // Marketplace
+  getMarketplaceUseCases(industryFilter?: string, userId?: string): Promise<MarketplaceUseCaseWithRating[]>;
+  getMarketplaceUseCase(id: string): Promise<MarketplaceUseCase | undefined>;
+  createMarketplaceUseCase(useCase: InsertMarketplaceUseCase): Promise<MarketplaceUseCase>;
+  cloneMarketplaceUseCase(marketplaceUseCaseId: string, clientId: string): Promise<UseCase>;
+  rateMarketplaceUseCase(marketplaceUseCaseId: string, userId: string, rating: number): Promise<MarketplaceRating>;
+  getUserRatingForMarketplaceUseCase(marketplaceUseCaseId: string, userId: string): Promise<MarketplaceRating | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -163,10 +178,120 @@ export class DatabaseStorage implements IStorage {
   }
 
   async removeUserFromClient(userId: string, clientId: string): Promise<boolean> {
-    const { and } = await import("drizzle-orm");
     await db.delete(userClients)
       .where(and(eq(userClients.userId, userId), eq(userClients.clientId, clientId)));
     return true;
+  }
+
+  // Marketplace
+  async getMarketplaceUseCases(industryFilter?: string, userId?: string): Promise<MarketplaceUseCaseWithRating[]> {
+    const allCases = industryFilter 
+      ? await db.select().from(marketplaceUseCases).where(eq(marketplaceUseCases.industryVertical, industryFilter)).orderBy(desc(marketplaceUseCases.cloneCount))
+      : await db.select().from(marketplaceUseCases).orderBy(desc(marketplaceUseCases.cloneCount));
+
+    const result: MarketplaceUseCaseWithRating[] = [];
+    for (const useCase of allCases) {
+      const ratings = await db.select({
+        avgRating: avg(marketplaceRatings.rating),
+        count: count(marketplaceRatings.id)
+      }).from(marketplaceRatings).where(eq(marketplaceRatings.marketplaceUseCaseId, useCase.id));
+      
+      let userRating: number | undefined;
+      if (userId) {
+        const [userRatingResult] = await db.select().from(marketplaceRatings)
+          .where(and(
+            eq(marketplaceRatings.marketplaceUseCaseId, useCase.id),
+            eq(marketplaceRatings.userId, userId)
+          ));
+        userRating = userRatingResult?.rating;
+      }
+
+      result.push({
+        ...useCase,
+        averageRating: ratings[0]?.avgRating ? Number(ratings[0].avgRating) : 0,
+        ratingCount: Number(ratings[0]?.count || 0),
+        userRating,
+      });
+    }
+    return result;
+  }
+
+  async getMarketplaceUseCase(id: string): Promise<MarketplaceUseCase | undefined> {
+    const [useCase] = await db.select().from(marketplaceUseCases).where(eq(marketplaceUseCases.id, id));
+    return useCase;
+  }
+
+  async createMarketplaceUseCase(useCase: InsertMarketplaceUseCase): Promise<MarketplaceUseCase> {
+    const [newUseCase] = await db.insert(marketplaceUseCases).values(useCase).returning();
+    return newUseCase;
+  }
+
+  async cloneMarketplaceUseCase(marketplaceUseCaseId: string, clientId: string): Promise<UseCase> {
+    const template = await this.getMarketplaceUseCase(marketplaceUseCaseId);
+    if (!template) {
+      throw new Error("Marketplace use case not found");
+    }
+
+    const existing = await db.select().from(useCases).orderBy(desc(useCases.priorityOrder));
+    const maxPriority = existing[0]?.priorityOrder || 0;
+
+    const [clonedUseCase] = await db.insert(useCases).values({
+      clientId,
+      title: template.title,
+      industryVertical: template.industryVertical,
+      department: template.department,
+      level: template.level,
+      goals: template.goals,
+      status: "Proposed",
+      riskRating: template.riskRating,
+      piiFlag: template.piiFlag,
+      dataFlow: template.dataFlow,
+      humanInLoop: template.humanInLoop,
+      storyToday: template.storyToday,
+      storyFuture: template.storyFuture,
+      personaStory: template.personaStory,
+      controls: template.controls,
+      tools: template.tools,
+      baselineMinutesPerRun: template.baselineMinutesPerRun,
+      frequencyPerWeek: template.frequencyPerWeek,
+      roiTimeSavedMinutesPerWeek: template.roiTimeSavedMinutesPerWeek,
+      roiDollarsPerMonth: template.roiDollarsPerMonth,
+      priorityOrder: maxPriority + 1,
+    }).returning();
+
+    await db.update(marketplaceUseCases)
+      .set({ cloneCount: sql`${marketplaceUseCases.cloneCount} + 1` })
+      .where(eq(marketplaceUseCases.id, marketplaceUseCaseId));
+
+    return clonedUseCase;
+  }
+
+  async rateMarketplaceUseCase(marketplaceUseCaseId: string, userId: string, rating: number): Promise<MarketplaceRating> {
+    const existing = await this.getUserRatingForMarketplaceUseCase(marketplaceUseCaseId, userId);
+    
+    if (existing) {
+      const [updated] = await db.update(marketplaceRatings)
+        .set({ rating, updatedAt: new Date() })
+        .where(eq(marketplaceRatings.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [newRating] = await db.insert(marketplaceRatings).values({
+        marketplaceUseCaseId,
+        userId,
+        rating,
+      }).returning();
+      return newRating;
+    }
+  }
+
+  async getUserRatingForMarketplaceUseCase(marketplaceUseCaseId: string, userId: string): Promise<MarketplaceRating | undefined> {
+    const [rating] = await db.select().from(marketplaceRatings)
+      .where(and(
+        eq(marketplaceRatings.marketplaceUseCaseId, marketplaceUseCaseId),
+        eq(marketplaceRatings.userId, userId)
+      ));
+    return rating;
   }
 }
 

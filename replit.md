@@ -120,6 +120,19 @@ Interactive features:
 - Click nodes to pin the detail panel open
 - Detail panel shows contextual explanations derived from use case data
 
+### Marketplace (/marketplace)
+Discover and clone proven use case templates to your dashboard:
+- **Template Library**: 8+ pre-built use case examples across industries
+- **Industry Filter**: Filter by Healthcare, Finance, Retail, B2B Services, etc.
+- **Star Ratings**: Rate use cases (1-5 stars) - ratings are cross-account
+- **Clone to Dashboard**: Add any template to your account with one click
+- **Usage Stats**: See how many times each template has been cloned
+
+Cloned use cases:
+- Appear in your Dashboard with status "Proposed"
+- Are fully editable - customize for your specific needs
+- Maintain all ROI metrics and workflow details from template
+
 ### Admin Panel (/admin)
 - **Clients Tab**: Create/view clients
 - **Use Cases Tab**: Create/view/edit use cases with story generator

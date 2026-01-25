@@ -15,6 +15,7 @@ import DashboardPage from "@/pages/dashboard";
 import UseCaseDetailPage from "@/pages/use-case-detail";
 import AdminPage from "@/pages/admin";
 import AuthPage from "@/pages/auth-page";
+import MarketplacePage from "@/pages/marketplace";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const style = {
@@ -46,6 +47,7 @@ function AuthenticatedRoutes() {
       <Switch>
         <Route path="/" component={() => <Redirect to="/dashboard" />} />
         <Route path="/dashboard" component={DashboardPage} />
+        <Route path="/marketplace" component={MarketplacePage} />
         <Route path="/use-cases/:id" component={UseCaseDetailPage} />
         <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />

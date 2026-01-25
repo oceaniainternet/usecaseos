@@ -2,7 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertClientSchema, insertUseCaseSchema, storyGeneratorInputSchema, type StoryGeneratorOutput } from "@shared/schema";
+import { insertClientSchema, insertUseCaseSchema, storyGeneratorInputSchema, cloneMarketplaceUseCaseSchema, rateMarketplaceUseCaseSchema, type StoryGeneratorOutput } from "@shared/schema";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -403,6 +403,80 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
         console.error("Fallback generation also failed:", fallbackError);
       }
       res.status(500).json({ message: "Failed to generate story" });
+    }
+  });
+
+  // Marketplace API
+  app.get("/api/marketplace", isAuthenticated, async (req, res) => {
+    try {
+      const industry = req.query.industry as string | undefined;
+      const userId = (req.user as any)?.id;
+      const marketplaceCases = await storage.getMarketplaceUseCases(
+        industry && industry !== "all" ? industry : undefined,
+        userId
+      );
+      res.json(marketplaceCases);
+    } catch (error) {
+      console.error("Error fetching marketplace use cases:", error);
+      res.status(500).json({ message: "Failed to fetch marketplace use cases" });
+    }
+  });
+
+  app.get("/api/marketplace/industries", isAuthenticated, async (req, res) => {
+    try {
+      const allCases = await storage.getMarketplaceUseCases();
+      const industries = Array.from(new Set(allCases.map(c => c.industryVertical))).sort();
+      res.json(industries);
+    } catch (error) {
+      console.error("Error fetching industries:", error);
+      res.status(500).json({ message: "Failed to fetch industries" });
+    }
+  });
+
+  app.get("/api/marketplace/:id", isAuthenticated, async (req, res) => {
+    try {
+      const useCase = await storage.getMarketplaceUseCase(req.params.id);
+      if (!useCase) {
+        return res.status(404).json({ message: "Marketplace use case not found" });
+      }
+      res.json(useCase);
+    } catch (error) {
+      console.error("Error fetching marketplace use case:", error);
+      res.status(500).json({ message: "Failed to fetch marketplace use case" });
+    }
+  });
+
+  app.post("/api/marketplace/:id/clone", isAuthenticated, async (req, res) => {
+    try {
+      const parsed = cloneMarketplaceUseCaseSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid request", errors: parsed.error.errors });
+      }
+      const clonedUseCase = await storage.cloneMarketplaceUseCase(req.params.id, parsed.data.clientId);
+      res.status(201).json(clonedUseCase);
+    } catch (error) {
+      console.error("Error cloning marketplace use case:", error);
+      res.status(500).json({ message: "Failed to clone marketplace use case" });
+    }
+  });
+
+  app.post("/api/marketplace/:id/rate", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      const parsed = rateMarketplaceUseCaseSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid rating", errors: parsed.error.errors });
+      }
+      
+      const ratingResult = await storage.rateMarketplaceUseCase(req.params.id, userId, parsed.data.rating);
+      res.json(ratingResult);
+    } catch (error) {
+      console.error("Error rating marketplace use case:", error);
+      res.status(500).json({ message: "Failed to rate marketplace use case" });
     }
   });
 

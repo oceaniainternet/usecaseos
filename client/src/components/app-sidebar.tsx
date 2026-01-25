@@ -25,6 +25,7 @@ import {
   ChevronUp,
   Workflow,
   Shield,
+  Store,
 } from "lucide-react";
 
 const mainNavItems = [
@@ -32,6 +33,11 @@ const mainNavItems = [
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Marketplace",
+    url: "/marketplace",
+    icon: Store,
   },
 ];
 
