@@ -17,9 +17,11 @@ import {
   Users,
   Wrench,
   CheckCircle2,
-  Info
+  Info,
+  TrendingUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ValueWheel } from "@/components/ValueWheel";
 
 const statusColors: Record<string, string> = {
   Proposed: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -207,6 +209,20 @@ export default function UseCaseDetailPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Value Wheel */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                Business Value
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">See how this use case drives outcomes across key value areas</p>
+            </CardHeader>
+            <CardContent>
+              <ValueWheel useCase={useCase} />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Story Mode Tab */}

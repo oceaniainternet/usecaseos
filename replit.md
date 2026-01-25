@@ -101,10 +101,24 @@ Goals help categorize what each use case aims to achieve:
 
 ### Use Case Detail (/use-cases/:id)
 Four tabs:
-1. **Overview**: Details, level, status, department, tools
+1. **Overview**: Details, level, status, department, tools + **Value Wheel**
 2. **Story Mode**: Persona story narrative + Current workflow vs Future automated workflow
 3. **Risk & Trust**: Risk rating, PII flag, data flow, human-in-loop, controls
 4. **ROI**: Baseline time, time saved, estimated monthly value
+
+### Value Wheel (Interactive Business Value Visualization)
+Located on the Overview tab, the Value Wheel shows how the use case drives business outcomes:
+- **Time Savings**: Minutes/hours saved weekly based on ROI metrics
+- **Cost Reduction**: Monthly dollar savings and annual projections
+- **Consistency**: Quality improvements based on automation level
+- **Risk Mitigation**: Active controls and human oversight status
+- **Compliance**: PII handling and data flow compliance posture
+- **Scalability**: Volume capacity based on frequency metrics
+
+Interactive features:
+- Hover over nodes to see quick value summaries
+- Click nodes to pin the detail panel open
+- Detail panel shows contextual explanations derived from use case data
 
 ### Admin Panel (/admin)
 - **Clients Tab**: Create/view clients

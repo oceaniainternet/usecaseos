@@ -751,12 +751,12 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
             control={form.control}
             name="storyTodayIsManual"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                 <FormControl>
-                  <Checkbox 
+                  <Switch 
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    data-testid="checkbox-story-today-manual"
+                    data-testid="switch-story-today-manual"
                   />
                 </FormControl>
                 <FormLabel className="text-sm font-normal cursor-pointer">
@@ -1328,12 +1328,12 @@ function EditUseCaseForm({
             control={form.control}
             name="storyTodayIsManual"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                 <FormControl>
-                  <Checkbox 
+                  <Switch 
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    data-testid="checkbox-edit-story-today-manual"
+                    data-testid="switch-edit-story-today-manual"
                   />
                 </FormControl>
                 <FormLabel className="text-sm font-normal cursor-pointer">
