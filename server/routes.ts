@@ -410,9 +410,11 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
   app.get("/api/marketplace", isAuthenticated, async (req, res) => {
     try {
       const industry = req.query.industry as string | undefined;
+      const scope = req.query.scope as string | undefined;
       const userId = (req.user as any)?.id;
       const marketplaceCases = await storage.getMarketplaceUseCases(
         industry && industry !== "all" ? industry : undefined,
+        scope && scope !== "all" ? scope : undefined,
         userId
       );
       res.json(marketplaceCases);
@@ -430,6 +432,16 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
     } catch (error) {
       console.error("Error fetching industries:", error);
       res.status(500).json({ message: "Failed to fetch industries" });
+    }
+  });
+
+  app.get("/api/marketplace/scopes", isAuthenticated, async (req, res) => {
+    try {
+      const scopes = await storage.getMarketplaceScopes();
+      res.json(scopes);
+    } catch (error) {
+      console.error("Error fetching scopes:", error);
+      res.status(500).json({ message: "Failed to fetch scopes" });
     }
   });
 

@@ -58,12 +58,13 @@ export interface IStorage {
   removeUserFromClient(userId: string, clientId: string): Promise<boolean>;
 
   // Marketplace
-  getMarketplaceUseCases(industryFilter?: string, userId?: string): Promise<MarketplaceUseCaseWithRating[]>;
+  getMarketplaceUseCases(industryFilter?: string, scopeFilter?: string, userId?: string): Promise<MarketplaceUseCaseWithRating[]>;
   getMarketplaceUseCase(id: string): Promise<MarketplaceUseCase | undefined>;
   createMarketplaceUseCase(useCase: InsertMarketplaceUseCase): Promise<MarketplaceUseCase>;
   cloneMarketplaceUseCase(marketplaceUseCaseId: string, clientId: string): Promise<UseCase>;
   rateMarketplaceUseCase(marketplaceUseCaseId: string, userId: string, rating: number): Promise<MarketplaceRating>;
   getUserRatingForMarketplaceUseCase(marketplaceUseCaseId: string, userId: string): Promise<MarketplaceRating | undefined>;
+  getMarketplaceScopes(): Promise<string[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -184,9 +185,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Marketplace
-  async getMarketplaceUseCases(industryFilter?: string, userId?: string): Promise<MarketplaceUseCaseWithRating[]> {
-    const allCases = industryFilter 
-      ? await db.select().from(marketplaceUseCases).where(eq(marketplaceUseCases.industryVertical, industryFilter)).orderBy(desc(marketplaceUseCases.cloneCount))
+  async getMarketplaceUseCases(industryFilter?: string, scopeFilter?: string, userId?: string): Promise<MarketplaceUseCaseWithRating[]> {
+    const conditions = [];
+    if (industryFilter) {
+      conditions.push(eq(marketplaceUseCases.industryVertical, industryFilter));
+    }
+    if (scopeFilter) {
+      conditions.push(eq(marketplaceUseCases.scope, scopeFilter));
+    }
+    
+    const allCases = conditions.length > 0
+      ? await db.select().from(marketplaceUseCases).where(and(...conditions)).orderBy(desc(marketplaceUseCases.cloneCount))
       : await db.select().from(marketplaceUseCases).orderBy(desc(marketplaceUseCases.cloneCount));
 
     const result: MarketplaceUseCaseWithRating[] = [];
@@ -292,6 +301,11 @@ export class DatabaseStorage implements IStorage {
         eq(marketplaceRatings.userId, userId)
       ));
     return rating;
+  }
+
+  async getMarketplaceScopes(): Promise<string[]> {
+    const results = await db.selectDistinct({ scope: marketplaceUseCases.scope }).from(marketplaceUseCases).orderBy(marketplaceUseCases.scope);
+    return results.map(r => r.scope);
   }
 }
 

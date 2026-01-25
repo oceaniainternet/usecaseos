@@ -177,14 +177,15 @@ function MarketplaceCard({
 export default function MarketplacePage() {
   const { toast } = useToast();
   const [industryFilter, setIndustryFilter] = useState<string>("all");
+  const [scopeFilter, setScopeFilter] = useState<string>("all");
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
   const [selectedUseCaseId, setSelectedUseCaseId] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   const { data: marketplaceCases = [], isLoading } = useQuery<MarketplaceUseCaseWithRating[]>({
-    queryKey: ["/api/marketplace", industryFilter],
+    queryKey: ["/api/marketplace", industryFilter, scopeFilter],
     queryFn: async () => {
-      const res = await fetch(`/api/marketplace?industry=${industryFilter}`, {
+      const res = await fetch(`/api/marketplace?industry=${industryFilter}&scope=${scopeFilter}`, {
         credentials: "include",
       });
       if (!res.ok) {
@@ -196,6 +197,10 @@ export default function MarketplacePage() {
 
   const { data: industries = [] } = useQuery<string[]>({
     queryKey: ["/api/marketplace/industries"],
+  });
+
+  const { data: scopes = [] } = useQuery<string[]>({
+    queryKey: ["/api/marketplace/scopes"],
   });
 
   const { data: clients = [] } = useQuery<Client[]>({
@@ -305,6 +310,24 @@ export default function MarketplacePage() {
             ))}
           </SelectContent>
         </Select>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Scope:</span>
+        </div>
+        <Select value={scopeFilter} onValueChange={setScopeFilter}>
+          <SelectTrigger className="w-48" data-testid="select-scope-filter">
+            <SelectValue placeholder="All Scopes" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Scopes</SelectItem>
+            {scopes.map((scope) => (
+              <SelectItem key={scope} value={scope}>
+                {scope}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <span className="text-sm text-muted-foreground">
           {marketplaceCases.length} use case{marketplaceCases.length !== 1 ? "s" : ""} available
         </span>

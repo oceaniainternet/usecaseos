@@ -90,6 +90,7 @@ export const marketplaceUseCases = pgTable("marketplace_use_cases", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   industryVertical: text("industry_vertical").notNull(),
+  scope: text("scope").notNull().default("General"),
   department: text("department").notNull(),
   level: integer("level").notNull().default(1),
   goals: jsonb("goals").$type<string[]>().default([]),
