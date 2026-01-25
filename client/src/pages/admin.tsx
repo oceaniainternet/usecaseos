@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { type Client, type UseCase, insertClientSchema, insertUseCaseSchema } from "@shared/schema";
+import { type Client, type UseCase, type ClientInvitation, insertClientSchema, insertUseCaseSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,8 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Building2, FileText, Sparkles, Loader2, Pencil, ChevronDown } from "lucide-react";
+import { Plus, Building2, FileText, Sparkles, Loader2, Pencil, ChevronDown, Mail, Trash2, Copy, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 // Goal options for use cases
 const goalOptions = [
@@ -101,6 +102,7 @@ export default function AdminPage() {
   const [clientDialogOpen, setClientDialogOpen] = useState(false);
   const [useCaseDialogOpen, setUseCaseDialogOpen] = useState(false);
   const [editUseCaseDialogOpen, setEditUseCaseDialogOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [selectedUseCase, setSelectedUseCase] = useState<UseCase | null>(null);
   const { toast } = useToast();
 
@@ -110,6 +112,10 @@ export default function AdminPage() {
 
   const { data: useCases = [], isLoading: useCasesLoading } = useQuery<UseCase[]>({
     queryKey: ["/api/use-cases"],
+  });
+
+  const { data: invitations = [], isLoading: invitationsLoading } = useQuery<ClientInvitation[]>({
+    queryKey: ["/api/invitations"],
   });
 
   return (
@@ -130,6 +136,10 @@ export default function AdminPage() {
           <TabsTrigger value="usecases" data-testid="tab-usecases">
             <FileText className="h-4 w-4 mr-2" />
             Use Cases
+          </TabsTrigger>
+          <TabsTrigger value="invitations" data-testid="tab-invitations">
+            <Mail className="h-4 w-4 mr-2" />
+            Invitations
           </TabsTrigger>
         </TabsList>
 
@@ -288,7 +298,253 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Invitations Tab */}
+        <TabsContent value="invitations" className="space-y-4">
+          <div className="flex justify-between items-center gap-4">
+            <h2 className="text-lg font-medium">Client Invitations</h2>
+            <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+              <DialogTrigger asChild>
+                <Button data-testid="button-invite-client">
+                  <Mail className="h-4 w-4 mr-2" />
+                  Invite Client
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Invite Client</DialogTitle>
+                </DialogHeader>
+                <InviteClientForm clients={clients} onSuccess={() => setInviteDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Card>
+            <CardContent className="p-0">
+              {invitationsLoading ? (
+                <div className="p-6 space-y-3">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : invitations.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground">
+                  No invitations yet. Invite your first client to give them access to their use cases.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Sent</TableHead>
+                      <TableHead>Expires</TableHead>
+                      <TableHead className="w-24">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invitations.map((invitation) => {
+                      const client = clients.find((c) => c.id === invitation.clientId);
+                      const isExpired = new Date(invitation.expiresAt) < new Date();
+                      return (
+                        <TableRow key={invitation.id} data-testid={`row-invitation-${invitation.id}`}>
+                          <TableCell className="font-medium">{invitation.email}</TableCell>
+                          <TableCell>{client?.name || "Unknown"}</TableCell>
+                          <TableCell>
+                            {invitation.status === "accepted" ? (
+                              <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Accepted
+                              </Badge>
+                            ) : isExpired ? (
+                              <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0">
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Expired
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Pending
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {new Date(invitation.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {new Date(invitation.expiresAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <InvitationActions invitation={invitation} />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function InviteClientForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () => void }) {
+  const { toast } = useToast();
+  const [lastInviteLink, setLastInviteLink] = useState<string | null>(null);
+  
+  const form = useForm({
+    defaultValues: {
+      email: "",
+      clientId: "",
+    },
+  });
+
+  const createInvitation = useMutation({
+    mutationFn: async (data: { email: string; clientId: string }) => {
+      const res = await apiRequest("POST", "/api/invitations", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invitations"] });
+      setLastInviteLink(window.location.origin + data.inviteLink);
+      toast({ 
+        title: "Invitation sent", 
+        description: "Copy the invite link to share with your client." 
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to send invitation", variant: "destructive" });
+    },
+  });
+
+  const copyLink = () => {
+    if (lastInviteLink) {
+      navigator.clipboard.writeText(lastInviteLink);
+      toast({ title: "Link copied to clipboard" });
+    }
+  };
+
+  if (lastInviteLink) {
+    return (
+      <div className="space-y-4">
+        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-2">
+            <CheckCircle className="h-4 w-4" />
+            <span className="font-medium">Invitation Created</span>
+          </div>
+          <p className="text-sm text-muted-foreground mb-2">
+            Share this link with your client to let them create their account:
+          </p>
+          <div className="flex gap-2">
+            <Input value={lastInviteLink} readOnly className="text-xs" data-testid="input-invite-link" />
+            <Button size="icon" variant="outline" onClick={copyLink} data-testid="button-copy-link">
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={() => setLastInviteLink(null)} data-testid="button-send-another">
+            Send Another
+          </Button>
+          <Button className="flex-1" onClick={onSuccess} data-testid="button-done">
+            Done
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={form.handleSubmit((data) => createInvitation.mutate(data))} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="email">Client Email</Label>
+        <Input 
+          id="email"
+          type="email"
+          placeholder="client@company.com"
+          {...form.register("email", { required: true })}
+          data-testid="input-invite-email"
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Client Company</Label>
+        <Select onValueChange={(v) => form.setValue("clientId", v)}>
+          <SelectTrigger data-testid="select-invite-client">
+            <SelectValue placeholder="Select client" />
+          </SelectTrigger>
+          <SelectContent>
+            {clients.map((client) => (
+              <SelectItem key={client.id} value={client.id}>
+                {client.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Button 
+        type="submit" 
+        className="w-full" 
+        disabled={createInvitation.isPending}
+        data-testid="button-submit-invite"
+      >
+        {createInvitation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+        Send Invitation
+      </Button>
+    </form>
+  );
+}
+
+function InvitationActions({ invitation }: { invitation: ClientInvitation }) {
+  const { toast } = useToast();
+
+  const deleteInvitation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/invitations/${invitation.id}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invitations"] });
+      toast({ title: "Invitation deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete invitation", variant: "destructive" });
+    },
+  });
+
+  const copyLink = () => {
+    const link = window.location.origin + `/accept-invite?token=${invitation.token}`;
+    navigator.clipboard.writeText(link);
+    toast({ title: "Invite link copied to clipboard" });
+  };
+
+  return (
+    <div className="flex gap-1">
+      {invitation.status === "pending" && (
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={copyLink}
+          title="Copy invite link"
+          data-testid={`button-copy-invite-${invitation.id}`}
+        >
+          <Copy className="h-4 w-4" />
+        </Button>
+      )}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={() => deleteInvitation.mutate()}
+        disabled={deleteInvitation.isPending}
+        title="Delete invitation"
+        data-testid={`button-delete-invite-${invitation.id}`}
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
     </div>
   );
 }
