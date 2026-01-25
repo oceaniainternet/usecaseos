@@ -16,6 +16,9 @@ import UseCaseDetailPage from "@/pages/use-case-detail";
 import AdminPage from "@/pages/admin";
 import AuthPage from "@/pages/auth-page";
 import MarketplacePage from "@/pages/marketplace";
+import ClientLoginPage from "@/pages/client-login";
+import AcceptInvitePage from "@/pages/accept-invite";
+import ClientPortalPage from "@/pages/client-portal";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const style = {
@@ -76,6 +79,9 @@ function Router() {
       <Switch>
         <Route path="/" component={LandingPage} />
         <Route path="/auth" component={AuthPage} />
+        <Route path="/client-login" component={ClientLoginPage} />
+        <Route path="/accept-invite" component={AcceptInvitePage} />
+        <Route path="/client-portal" component={ClientPortalPage} />
         <Route component={LandingPage} />
       </Switch>
     );
