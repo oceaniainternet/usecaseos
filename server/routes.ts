@@ -2,9 +2,10 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertClientSchema, insertUseCaseSchema, storyGeneratorInputSchema, cloneMarketplaceUseCaseSchema, rateMarketplaceUseCaseSchema, type StoryGeneratorOutput } from "@shared/schema";
+import { insertClientSchema, insertUseCaseSchema, storyGeneratorInputSchema, cloneMarketplaceUseCaseSchema, rateMarketplaceUseCaseSchema, createClientInvitationSchema, acceptInvitationSchema, type StoryGeneratorOutput } from "@shared/schema";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
+import bcrypt from "bcrypt";
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -489,6 +490,238 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
     } catch (error) {
       console.error("Error rating marketplace use case:", error);
       res.status(500).json({ message: "Failed to rate marketplace use case" });
+    }
+  });
+
+  // Client Invitation API
+  app.get("/api/invitations", isAuthenticated, async (req, res) => {
+    try {
+      const invitations = await storage.getAllClientInvitations();
+      res.json(invitations);
+    } catch (error) {
+      console.error("Error fetching invitations:", error);
+      res.status(500).json({ message: "Failed to fetch invitations" });
+    }
+  });
+
+  app.get("/api/invitations/client/:clientId", isAuthenticated, async (req, res) => {
+    try {
+      const invitations = await storage.getClientInvitationsByClient(req.params.clientId);
+      res.json(invitations);
+    } catch (error) {
+      console.error("Error fetching client invitations:", error);
+      res.status(500).json({ message: "Failed to fetch invitations" });
+    }
+  });
+
+  app.post("/api/invitations", isAuthenticated, async (req, res) => {
+    try {
+      const parsed = createClientInvitationSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid request", errors: parsed.error.errors });
+      }
+
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const invitation = await storage.createClientInvitation(
+        parsed.data.email,
+        parsed.data.clientId,
+        userId
+      );
+
+      // In production, you would send an email here
+      // For now, we return the invitation with the token for testing
+      res.status(201).json({
+        ...invitation,
+        inviteLink: `/accept-invite?token=${invitation.token}`,
+      });
+    } catch (error) {
+      console.error("Error creating invitation:", error);
+      res.status(500).json({ message: "Failed to create invitation" });
+    }
+  });
+
+  app.delete("/api/invitations/:id", isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteClientInvitation(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting invitation:", error);
+      res.status(500).json({ message: "Failed to delete invitation" });
+    }
+  });
+
+  // Public endpoint - verify invitation token
+  app.get("/api/invitations/verify/:token", async (req, res) => {
+    try {
+      const invitation = await storage.getClientInvitationByToken(req.params.token);
+      if (!invitation) {
+        return res.status(404).json({ message: "Invitation not found" });
+      }
+      if (invitation.status !== "pending") {
+        return res.status(400).json({ message: "Invitation has already been used" });
+      }
+      if (new Date() > invitation.expiresAt) {
+        return res.status(400).json({ message: "Invitation has expired" });
+      }
+
+      const client = await storage.getClient(invitation.clientId);
+      res.json({
+        email: invitation.email,
+        clientName: client?.name || "Unknown",
+        expiresAt: invitation.expiresAt,
+      });
+    } catch (error) {
+      console.error("Error verifying invitation:", error);
+      res.status(500).json({ message: "Failed to verify invitation" });
+    }
+  });
+
+  // Public endpoint - accept invitation and create account
+  app.post("/api/invitations/accept", async (req, res) => {
+    try {
+      const parsed = acceptInvitationSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid request", errors: parsed.error.errors });
+      }
+
+      const { token, password, firstName, lastName } = parsed.data;
+
+      // Get the invitation
+      const invitation = await storage.getClientInvitationByToken(token);
+      if (!invitation) {
+        return res.status(404).json({ message: "Invitation not found" });
+      }
+      if (invitation.status !== "pending") {
+        return res.status(400).json({ message: "Invitation has already been used" });
+      }
+      if (new Date() > invitation.expiresAt) {
+        return res.status(400).json({ message: "Invitation has expired" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(invitation.email);
+      if (existingUser) {
+        // Link existing user to client
+        await storage.acceptClientInvitation(token, existingUser.id);
+        return res.json({ message: "Account linked to client successfully", redirect: "/client-login" });
+      }
+
+      // Hash password and create new user
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = await storage.createUser({
+        email: invitation.email,
+        password: hashedPassword,
+        firstName: firstName || null,
+        lastName: lastName || null,
+      });
+
+      // Accept invitation (links user to client)
+      await storage.acceptClientInvitation(token, newUser.id);
+
+      res.status(201).json({ message: "Account created successfully", redirect: "/client-login" });
+    } catch (error) {
+      console.error("Error accepting invitation:", error);
+      res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
+
+  // Client login (separate from admin)
+  app.post("/api/client-login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.password) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Check if user is linked to at least one client
+      const userClients = await storage.getUserClients(user.id);
+      if (userClients.length === 0) {
+        return res.status(403).json({ message: "You don't have access to any client accounts" });
+      }
+
+      // Log the user in
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Login failed" });
+        }
+        res.json({ 
+          id: user.id, 
+          email: user.email, 
+          firstName: user.firstName,
+          lastName: user.lastName,
+          isClient: true 
+        });
+      });
+    } catch (error) {
+      console.error("Error in client login:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Get use cases for client portal (only their assigned clients' use cases)
+  app.get("/api/client-portal/use-cases", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const userClients = await storage.getUserClients(userId);
+      const clientIds = userClients.map(uc => uc.clientId);
+
+      if (clientIds.length === 0) {
+        return res.json([]);
+      }
+
+      const allUseCases = [];
+      for (const clientId of clientIds) {
+        const useCases = await storage.getUseCasesByClient(clientId);
+        const client = await storage.getClient(clientId);
+        allUseCases.push(...useCases.map(uc => ({ ...uc, clientName: client?.name })));
+      }
+
+      res.json(allUseCases);
+    } catch (error) {
+      console.error("Error fetching client portal use cases:", error);
+      res.status(500).json({ message: "Failed to fetch use cases" });
+    }
+  });
+
+  // Get clients linked to the current user (for client portal)
+  app.get("/api/client-portal/clients", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const userClients = await storage.getUserClients(userId);
+      const clients = await Promise.all(
+        userClients.map(async (uc) => {
+          const client = await storage.getClient(uc.clientId);
+          return client;
+        })
+      );
+
+      res.json(clients.filter(Boolean));
+    } catch (error) {
+      console.error("Error fetching client portal clients:", error);
+      res.status(500).json({ message: "Failed to fetch clients" });
     }
   });
 
