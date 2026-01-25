@@ -5,6 +5,7 @@ import {
   users,
   marketplaceUseCases,
   marketplaceRatings,
+  clientInvitations,
   type Client, 
   type InsertClient, 
   type UseCase, 
@@ -17,7 +18,9 @@ import {
   type InsertMarketplaceUseCase,
   type MarketplaceRating,
   type InsertMarketplaceRating,
-  type MarketplaceUseCaseWithRating
+  type MarketplaceUseCaseWithRating,
+  type ClientInvitation,
+  type InsertClientInvitation
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, asc, desc, and, sql, avg, count } from "drizzle-orm";
@@ -65,6 +68,14 @@ export interface IStorage {
   rateMarketplaceUseCase(marketplaceUseCaseId: string, userId: string, rating: number): Promise<MarketplaceRating>;
   getUserRatingForMarketplaceUseCase(marketplaceUseCaseId: string, userId: string): Promise<MarketplaceRating | undefined>;
   getMarketplaceScopes(): Promise<string[]>;
+
+  // Client Invitations
+  createClientInvitation(email: string, clientId: string, invitedByUserId: string): Promise<ClientInvitation>;
+  getClientInvitationByToken(token: string): Promise<ClientInvitation | undefined>;
+  getClientInvitationsByClient(clientId: string): Promise<ClientInvitation[]>;
+  getAllClientInvitations(): Promise<ClientInvitation[]>;
+  acceptClientInvitation(token: string, userId: string): Promise<ClientInvitation>;
+  deleteClientInvitation(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -306,6 +317,70 @@ export class DatabaseStorage implements IStorage {
   async getMarketplaceScopes(): Promise<string[]> {
     const results = await db.selectDistinct({ scope: marketplaceUseCases.scope }).from(marketplaceUseCases).orderBy(marketplaceUseCases.scope);
     return results.map(r => r.scope);
+  }
+
+  // Client Invitations
+  async createClientInvitation(email: string, clientId: string, invitedByUserId: string): Promise<ClientInvitation> {
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    
+    const [invitation] = await db.insert(clientInvitations).values({
+      email,
+      clientId,
+      token,
+      invitedByUserId,
+      expiresAt,
+    }).returning();
+    return invitation;
+  }
+
+  async getClientInvitationByToken(token: string): Promise<ClientInvitation | undefined> {
+    const [invitation] = await db.select().from(clientInvitations).where(eq(clientInvitations.token, token));
+    return invitation;
+  }
+
+  async getClientInvitationsByClient(clientId: string): Promise<ClientInvitation[]> {
+    return await db.select().from(clientInvitations).where(eq(clientInvitations.clientId, clientId)).orderBy(desc(clientInvitations.createdAt));
+  }
+
+  async getAllClientInvitations(): Promise<ClientInvitation[]> {
+    return await db.select().from(clientInvitations).orderBy(desc(clientInvitations.createdAt));
+  }
+
+  async acceptClientInvitation(token: string, userId: string): Promise<ClientInvitation> {
+    const invitation = await this.getClientInvitationByToken(token);
+    if (!invitation) {
+      throw new Error("Invitation not found");
+    }
+    if (invitation.status !== "pending") {
+      throw new Error("Invitation has already been used or expired");
+    }
+    if (new Date() > invitation.expiresAt) {
+      await db.update(clientInvitations)
+        .set({ status: "expired" })
+        .where(eq(clientInvitations.id, invitation.id));
+      throw new Error("Invitation has expired");
+    }
+
+    // Link user to client
+    await this.addUserToClient({
+      userId,
+      clientId: invitation.clientId,
+      role: "CLIENT",
+    });
+
+    // Mark invitation as accepted
+    const [updated] = await db.update(clientInvitations)
+      .set({ status: "accepted", acceptedAt: new Date() })
+      .where(eq(clientInvitations.id, invitation.id))
+      .returning();
+    
+    return updated;
+  }
+
+  async deleteClientInvitation(id: string): Promise<boolean> {
+    await db.delete(clientInvitations).where(eq(clientInvitations.id, id));
+    return true;
   }
 }
 

@@ -11,6 +11,7 @@ export * from "./models/chat";
 
 // Enums
 export const userRoleEnum = pgEnum("user_role", ["ADMIN", "CLIENT"]);
+export const invitationStatusEnum = pgEnum("invitation_status", ["pending", "accepted", "expired"]);
 export const useCaseStatusEnum = pgEnum("use_case_status", ["Proposed", "Approved", "Building", "Live", "Optimising", "Paused"]);
 export const riskRatingEnum = pgEnum("risk_rating", ["None", "Low", "Medium", "High"]);
 export const dataFlowEnum = pgEnum("data_flow", ["LocalOnly", "VendorTools", "CloudLLM"]);
@@ -47,6 +48,23 @@ export const userClients = pgTable("user_clients", {
 }, (table) => [
   index("user_clients_user_idx").on(table.userId),
   index("user_clients_client_idx").on(table.clientId),
+]);
+
+// Client invitations for email-based onboarding
+export const clientInvitations = pgTable("client_invitations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  clientId: varchar("client_id").notNull(),
+  token: text("token").notNull().unique(),
+  status: invitationStatusEnum("status").notNull().default("pending"),
+  invitedByUserId: varchar("invited_by_user_id").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("client_invitations_email_idx").on(table.email),
+  index("client_invitations_token_idx").on(table.token),
+  index("client_invitations_client_idx").on(table.clientId),
 ]);
 
 // Use cases table
@@ -195,8 +213,28 @@ export const insertMarketplaceRatingSchema = createInsertSchema(marketplaceRatin
   updatedAt: true,
 });
 
+export const insertClientInvitationSchema = createInsertSchema(clientInvitations).omit({
+  id: true,
+  createdAt: true,
+  token: true,
+  status: true,
+  acceptedAt: true,
+});
+
 export const cloneMarketplaceUseCaseSchema = z.object({
   clientId: z.string().min(1, "Client ID is required"),
+});
+
+export const createClientInvitationSchema = z.object({
+  email: z.string().email("Valid email is required"),
+  clientId: z.string().min(1, "Client ID is required"),
+});
+
+export const acceptInvitationSchema = z.object({
+  token: z.string().min(1, "Token is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
 });
 
 export const rateMarketplaceUseCaseSchema = z.object({
@@ -221,6 +259,9 @@ export type InsertMarketplaceUseCase = z.infer<typeof insertMarketplaceUseCaseSc
 
 export type MarketplaceRating = typeof marketplaceRatings.$inferSelect;
 export type InsertMarketplaceRating = z.infer<typeof insertMarketplaceRatingSchema>;
+
+export type ClientInvitation = typeof clientInvitations.$inferSelect;
+export type InsertClientInvitation = z.infer<typeof insertClientInvitationSchema>;
 
 export type MarketplaceUseCaseWithRating = MarketplaceUseCase & {
   averageRating: number;
