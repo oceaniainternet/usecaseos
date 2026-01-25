@@ -111,7 +111,7 @@ Four tabs:
 - **Use Cases Tab**: Create/view/edit use cases with story generator
 
 ### Story Generator
-Template-based generation (no LLM required) for:
+**Claude AI-powered generation** (Claude Sonnet 4.5 via Replit AI Integrations) for:
 - **Persona Story**: Rich narrative using real-world names and industry-specific language
   - Podiatry pilot: Uses personas like Dr. Sarah Mitchell, Karen (Practice Manager), Mrs. Henderson (patient)
   - Includes podiatry terminology: diabetic foot assessment, orthotics, wound care
@@ -119,6 +119,8 @@ Template-based generation (no LLM required) for:
 - Current workflow description (storyToday)
 - Future automated workflow steps (storyFuture)
 - Controls/guardrails (with healthcare-specific safeguards)
+
+Falls back to template-based generation if AI is unavailable.
 
 ## Seed Data
 Includes 5 podiatry use case examples:

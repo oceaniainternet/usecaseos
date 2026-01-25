@@ -4,6 +4,13 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { insertClientSchema, insertUseCaseSchema, storyGeneratorInputSchema, type StoryGeneratorOutput } from "@shared/schema";
 import { z } from "zod";
+import Anthropic from "@anthropic-ai/sdk";
+
+// Initialize Anthropic client
+const anthropic = new Anthropic({
+  apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL,
+});
 
 // Podiatry-specific persona names and scenarios
 const podiatryPersonas = {
@@ -309,17 +316,82 @@ export async function registerRoutes(
     }
   });
 
-  // Story Generator
+  // Story Generator - Claude AI powered
   app.post("/api/story-generate", isAuthenticated, async (req, res) => {
     try {
       const parsed = storyGeneratorInputSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
       }
-      const result = generateStory(parsed.data);
-      res.json(result);
+      
+      const { industryVertical, department, taskSummary, tools, piiFlag, riskRating, level } = parsed.data;
+      
+      // Determine level description
+      const levelDescriptions: Record<number, string> = {
+        1: "Tool-assisted (staff uses digital tools but maintains control)",
+        2: "No-code automation (workflow runs automatically with triggers)",
+        3: "AI-embedded (intelligent automation with decision-making within guardrails)"
+      };
+
+      const prompt = `You are a business consultant writing compelling use case stories for healthcare/medical practices. Generate a story for the following automation use case:
+
+Industry: ${industryVertical}
+Department: ${department}
+Task: ${taskSummary}
+Tools Used: ${tools.length > 0 ? tools.join(", ") : "Not specified"}
+Automation Level: Level ${level} - ${levelDescriptions[level]}
+Contains Personal Data (PII): ${piiFlag ? "Yes" : "No"}
+Risk Rating: ${riskRating}
+
+Please generate the following in JSON format:
+{
+  "storyToday": "A paragraph describing the current manual workflow and pain points (2-3 sentences)",
+  "storyFuture": "Numbered steps (1. 2. 3. etc.) describing the automated workflow (4-6 steps)",
+  "personaStory": "A compelling narrative story (4-5 paragraphs) featuring:
+    - Real persona names (use healthcare-appropriate names like Dr. Sarah Mitchell, Karen the Practice Manager, patients like Mrs. Henderson)
+    - Industry-specific terminology${industryVertical.toLowerCase().includes('podiatry') ? " (diabetic foot assessment, orthotics, wound care, biomechanical assessment)" : ""}
+    - Emotional before/after transformation
+    - Quotes from the personas about the change
+    - ${piiFlag ? "Mention of privacy/compliance considerations" : ""}
+    - ${riskRating === 'High' || riskRating === 'Medium' ? "Emphasis on human oversight and guardrails" : ""}",
+  "controls": ["Array of 3-5 relevant controls/guardrails for this use case${piiFlag ? " including PII protection measures" : ""}"]
+}
+
+Make the story authentic, warm, and compelling - suitable for presenting to clients. Use natural healthcare language and real-world scenarios.`;
+
+      const message = await anthropic.messages.create({
+        model: "claude-sonnet-4-5",
+        max_tokens: 2048,
+        messages: [{ role: "user", content: prompt }],
+      });
+
+      const content = message.content[0];
+      if (content.type !== "text") {
+        throw new Error("Unexpected response type from Claude");
+      }
+
+      // Parse the JSON response
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        // Fallback to template-based generation if Claude fails to return JSON
+        const result = generateStory(parsed.data);
+        return res.json(result);
+      }
+
+      const aiResult = JSON.parse(jsonMatch[0]) as StoryGeneratorOutput;
+      res.json(aiResult);
     } catch (error) {
-      console.error("Error generating story:", error);
+      console.error("Error generating story with Claude:", error);
+      // Fallback to template-based generation
+      try {
+        const parsed = storyGeneratorInputSchema.safeParse(req.body);
+        if (parsed.success) {
+          const result = generateStory(parsed.data);
+          return res.json(result);
+        }
+      } catch (fallbackError) {
+        console.error("Fallback generation also failed:", fallbackError);
+      }
       res.status(500).json({ message: "Failed to generate story" });
     }
   });
