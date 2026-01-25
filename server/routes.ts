@@ -324,7 +324,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
       }
       
-      const { industryVertical, department, taskSummary, tools, piiFlag, riskRating, level, customerFrustrations } = parsed.data;
+      const { industryVertical, department, taskSummary, tools, piiFlag, riskRating, level, customerFrustrations, storyTodayIsManual, existingStoryToday } = parsed.data;
       
       // Determine level description
       const levelDescriptions: Record<number, string> = {
@@ -338,6 +338,11 @@ export async function registerRoutes(
         ? `\nCustomer Frustrations/Quotes: "${customerFrustrations}"\n(IMPORTANT: Incorporate these real customer frustrations into the narrative - use similar language and emotional tone)`
         : "";
 
+      // Build storyToday instruction based on manual mode
+      const storyTodayInstruction = storyTodayIsManual && existingStoryToday?.trim()
+        ? `"storyToday": "IMPORTANT: The user has manually written the current workflow. Take their exact content and ONLY improve the grammar, spelling, and punctuation while preserving their meaning and voice. Here is their content to enhance: '${existingStoryToday.replace(/'/g, "\\'")}'"` 
+        : `"storyToday": "A paragraph describing the current manual workflow and pain points (2-3 sentences)"`;
+
       const prompt = `You are a business consultant writing compelling use case stories for healthcare/medical practices. Generate a story for the following automation use case:
 
 Industry: ${industryVertical}
@@ -350,7 +355,7 @@ Risk Rating: ${riskRating}${frustrationContext}
 
 Please generate the following in JSON format:
 {
-  "storyToday": "A paragraph describing the current manual workflow and pain points (2-3 sentences)",
+  ${storyTodayInstruction},
   "storyFuture": "Numbered steps (1. 2. 3. etc.) describing the automated workflow (4-6 steps)",
   "personaStory": "A compelling narrative story (4-5 paragraphs) featuring:
     - Real persona names (use healthcare-appropriate names like Dr. Sarah Mitchell, Karen the Practice Manager, patients like Mrs. Henderson)

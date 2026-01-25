@@ -125,6 +125,12 @@ Four tabs:
 - Claude incorporates these frustrations into the narrative with matching language and emotional tone
 - Makes stories more authentic and relatable for client presentations
 
+**Manual Input Mode** (checkbox above Current Workflow field):
+- Check "Manual input (AI will enhance grammar only)" to preserve your own workflow description
+- When checked: AI only fixes spelling, grammar, and punctuation while preserving your meaning
+- When unchecked (default): AI generates the Current Workflow description from scratch
+- Useful for capturing the exact current state as described by the client
+
 Falls back to template-based generation if AI is unavailable.
 
 ## Seed Data

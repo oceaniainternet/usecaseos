@@ -75,6 +75,7 @@ const useCaseFormSchema = z.object({
   dataFlow: z.enum(["LocalOnly", "VendorTools", "CloudLLM"]),
   humanInLoop: z.enum(["Required", "Optional", "None"]),
   customerFrustrations: z.string().optional(),
+  storyTodayIsManual: z.boolean().default(false),
   storyToday: z.string().optional(),
   storyFuture: z.string().optional(),
   personaStory: z.string().optional(),
@@ -374,6 +375,7 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
       dataFlow: "LocalOnly",
       humanInLoop: "Required",
       customerFrustrations: "",
+      storyTodayIsManual: false,
       storyToday: "",
       storyFuture: "",
       personaStory: "",
@@ -424,9 +426,13 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
         riskRating: values.riskRating,
         level: values.level,
         customerFrustrations: values.customerFrustrations || "",
+        storyTodayIsManual: values.storyTodayIsManual || false,
+        existingStoryToday: values.storyToday || "",
       });
       const data = await res.json();
-      form.setValue("storyToday", data.storyToday);
+      if (data.storyToday) {
+        form.setValue("storyToday", data.storyToday);
+      }
       form.setValue("storyFuture", data.storyFuture);
       form.setValue("personaStory", data.personaStory);
       form.setValue("controls", data.controls.join("\n"));
@@ -740,24 +746,44 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
           </CollapsibleContent>
         </Collapsible>
 
-        <FormField
-          control={form.control}
-          name="storyToday"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Current Workflow (Today)</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Describe the current manual workflow..."
-                  className="min-h-24"
-                  {...field}
-                  data-testid="textarea-story-today"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="space-y-2">
+          <FormField
+            control={form.control}
+            name="storyTodayIsManual"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                <FormControl>
+                  <Checkbox 
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    data-testid="checkbox-story-today-manual"
+                  />
+                </FormControl>
+                <FormLabel className="text-sm font-normal cursor-pointer">
+                  Manual input (AI will enhance grammar only)
+                </FormLabel>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="storyToday"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Current Workflow (Today)</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Describe the current manual workflow..."
+                    className="min-h-24"
+                    {...field}
+                    data-testid="textarea-story-today"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
@@ -913,6 +939,7 @@ function EditUseCaseForm({
       dataFlow: useCase.dataFlow as "LocalOnly" | "VendorTools" | "CloudLLM",
       humanInLoop: useCase.humanInLoop as "Required" | "Optional" | "None",
       customerFrustrations: useCase.customerFrustrations || "",
+      storyTodayIsManual: useCase.storyTodayIsManual || false,
       storyToday: useCase.storyToday || "",
       storyFuture: useCase.storyFuture || "",
       personaStory: useCase.personaStory || "",
@@ -964,9 +991,13 @@ function EditUseCaseForm({
         riskRating: values.riskRating,
         level: values.level,
         customerFrustrations: values.customerFrustrations || "",
+        storyTodayIsManual: values.storyTodayIsManual || false,
+        existingStoryToday: values.storyToday || "",
       });
       const data = await res.json();
-      form.setValue("storyToday", data.storyToday);
+      if (data.storyToday) {
+        form.setValue("storyToday", data.storyToday);
+      }
       form.setValue("storyFuture", data.storyFuture);
       form.setValue("personaStory", data.personaStory);
       form.setValue("controls", data.controls.join("\n"));
@@ -1292,24 +1323,44 @@ function EditUseCaseForm({
           </CollapsibleContent>
         </Collapsible>
 
-        <FormField
-          control={form.control}
-          name="storyToday"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Current Workflow</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Describe the current manual process..."
-                  className="min-h-24"
-                  {...field}
-                  data-testid="textarea-edit-story-today"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="space-y-2">
+          <FormField
+            control={form.control}
+            name="storyTodayIsManual"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                <FormControl>
+                  <Checkbox 
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    data-testid="checkbox-edit-story-today-manual"
+                  />
+                </FormControl>
+                <FormLabel className="text-sm font-normal cursor-pointer">
+                  Manual input (AI will enhance grammar only)
+                </FormLabel>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="storyToday"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Current Workflow</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Describe the current manual process..."
+                    className="min-h-24"
+                    {...field}
+                    data-testid="textarea-edit-story-today"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
