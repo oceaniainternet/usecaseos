@@ -106,15 +106,20 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
+    passport.authenticate("local", async (err: any, user: SelectUser | false, info: any) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: info?.message || "Invalid credentials" });
       }
-      req.login(user, (err) => {
+      req.login(user, async (err) => {
         if (err) return next(err);
         const { password: _, ...safeUser } = user;
-        res.status(200).json(safeUser);
+        
+        // Check if user is a client user
+        const userClients = await storage.getUserClients(safeUser.id);
+        const isClientUser = userClients.length > 0;
+        
+        res.status(200).json({ ...safeUser, isClientUser });
       });
     })(req, res, next);
   });
