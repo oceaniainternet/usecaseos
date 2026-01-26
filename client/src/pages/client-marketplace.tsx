@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { type MarketplaceUseCaseWithRating, levelLabels } from "@shared/schema";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -14,7 +15,8 @@ import {
   DollarSign, 
   Users,
   ShieldCheck,
-  Filter
+  Filter,
+  Heart
 } from "lucide-react";
 
 function StarRating({ 
@@ -48,7 +50,7 @@ function StarRating({
           key={star}
           type="button"
           disabled={!interactive}
-          className={`${interactive ? "cursor-pointer hover:scale-110" : "cursor-default"} transition-transform`}
+          className={`${interactive ? "cursor-pointer" : "cursor-default"}`}
           onMouseEnter={() => interactive && setHoverRating(star)}
           onClick={() => interactive && onRate?.(star)}
           data-testid={`${testIdPrefix}-${star}`}
@@ -68,10 +70,16 @@ function StarRating({
 
 function MarketplaceCard({ 
   useCase, 
-  onRate 
+  onRate,
+  isFavorite,
+  onToggleFavorite,
+  isTogglingFavorite
 }: { 
   useCase: MarketplaceUseCaseWithRating;
   onRate: (id: string, rating: number) => void;
+  isFavorite: boolean;
+  onToggleFavorite: (id: string, currentlyFavorite: boolean) => void;
+  isTogglingFavorite: boolean;
 }) {
   const riskColors: Record<string, string> = {
     None: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -99,6 +107,17 @@ function MarketplaceCard({
             </CardDescription>
           </div>
           <div className="flex flex-col items-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={isFavorite ? "text-red-500" : "text-muted-foreground"}
+              onClick={() => onToggleFavorite(useCase.id, isFavorite)}
+              disabled={isTogglingFavorite}
+              data-testid={`button-favorite-${useCase.id}`}
+              title={isFavorite ? "Remove from roadmap" : "Add to roadmap"}
+            >
+              <Heart className={isFavorite ? "fill-current" : ""} />
+            </Button>
             <div className="flex items-center gap-1">
               <StarRating rating={useCase.averageRating} userRating={useCase.userRating} useCaseId={`display-${useCase.id}`} />
               <span className="text-xs text-muted-foreground" data-testid={`text-rating-count-${useCase.id}`}>({useCase.ratingCount})</span>
@@ -165,10 +184,19 @@ function MarketplaceCard({
   );
 }
 
+type ClientFavorite = {
+  id: string;
+  marketplaceUseCaseId: string;
+  userId: string;
+  clientId: string;
+  createdAt: string;
+};
+
 export default function ClientMarketplacePage() {
   const { toast } = useToast();
   const [industryFilter, setIndustryFilter] = useState<string>("all");
   const [scopeFilter, setScopeFilter] = useState<string>("all");
+  const [togglingFavoriteId, setTogglingFavoriteId] = useState<string | null>(null);
 
   const { data: marketplaceCases = [], isLoading } = useQuery<MarketplaceUseCaseWithRating[]>({
     queryKey: ["/api/marketplace", industryFilter, scopeFilter],
@@ -186,6 +214,12 @@ export default function ClientMarketplacePage() {
   const { data: industries = [] } = useQuery<string[]>({
     queryKey: ["/api/marketplace/industries"],
   });
+
+  const { data: favorites = [] } = useQuery<ClientFavorite[]>({
+    queryKey: ["/api/client-favorites"],
+  });
+
+  const favoriteIds = new Set(favorites.map(f => f.marketplaceUseCaseId));
 
   const rateMutation = useMutation({
     mutationFn: async ({ useCaseId, rating }: { useCaseId: string; rating: number }) => {
@@ -207,8 +241,63 @@ export default function ClientMarketplacePage() {
     },
   });
 
+  const addFavoriteMutation = useMutation({
+    mutationFn: async (useCaseId: string) => {
+      await apiRequest("POST", `/api/marketplace/${useCaseId}/favorite`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/client-favorites"] });
+      toast({
+        title: "Added to roadmap",
+        description: "Your consultant will see this as a potential next use case.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to add to roadmap",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setTogglingFavoriteId(null);
+    },
+  });
+
+  const removeFavoriteMutation = useMutation({
+    mutationFn: async (useCaseId: string) => {
+      await apiRequest("DELETE", `/api/marketplace/${useCaseId}/favorite`, undefined);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/client-favorites"] });
+      toast({
+        title: "Removed from roadmap",
+        description: "This use case has been removed from your roadmap.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to remove from roadmap",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setTogglingFavoriteId(null);
+    },
+  });
+
   const handleRate = (useCaseId: string, rating: number) => {
     rateMutation.mutate({ useCaseId, rating });
+  };
+
+  const handleToggleFavorite = (useCaseId: string, currentlyFavorite: boolean) => {
+    setTogglingFavoriteId(useCaseId);
+    if (currentlyFavorite) {
+      removeFavoriteMutation.mutate(useCaseId);
+    } else {
+      addFavoriteMutation.mutate(useCaseId);
+    }
   };
 
   if (isLoading) {
@@ -291,6 +380,9 @@ export default function ClientMarketplacePage() {
               key={useCase.id}
               useCase={useCase}
               onRate={handleRate}
+              isFavorite={favoriteIds.has(useCase.id)}
+              onToggleFavorite={handleToggleFavorite}
+              isTogglingFavorite={togglingFavoriteId === useCase.id}
             />
           ))}
         </div>

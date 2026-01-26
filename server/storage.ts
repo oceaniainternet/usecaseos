@@ -6,6 +6,7 @@ import {
   marketplaceUseCases,
   marketplaceRatings,
   clientInvitations,
+  clientFavorites,
   type Client, 
   type InsertClient, 
   type UseCase, 
@@ -20,7 +21,9 @@ import {
   type InsertMarketplaceRating,
   type MarketplaceUseCaseWithRating,
   type ClientInvitation,
-  type InsertClientInvitation
+  type InsertClientInvitation,
+  type ClientFavorite,
+  type InsertClientFavorite
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, asc, desc, and, sql, avg, count } from "drizzle-orm";
@@ -76,6 +79,13 @@ export interface IStorage {
   getAllClientInvitations(): Promise<ClientInvitation[]>;
   acceptClientInvitation(token: string, userId: string): Promise<ClientInvitation>;
   deleteClientInvitation(id: string): Promise<boolean>;
+
+  // Client Favorites (marketplace roadmap)
+  addClientFavorite(marketplaceUseCaseId: string, userId: string, clientId: string): Promise<ClientFavorite>;
+  removeClientFavorite(marketplaceUseCaseId: string, userId: string): Promise<boolean>;
+  getClientFavorites(userId: string): Promise<ClientFavorite[]>;
+  getClientFavoritesByClient(clientId: string): Promise<(ClientFavorite & { marketplaceUseCase: MarketplaceUseCase; user: User })[]>;
+  isClientFavorite(marketplaceUseCaseId: string, userId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -381,6 +391,73 @@ export class DatabaseStorage implements IStorage {
   async deleteClientInvitation(id: string): Promise<boolean> {
     await db.delete(clientInvitations).where(eq(clientInvitations.id, id));
     return true;
+  }
+
+  // Client Favorites
+  async addClientFavorite(marketplaceUseCaseId: string, userId: string, clientId: string): Promise<ClientFavorite> {
+    const existing = await db.select().from(clientFavorites)
+      .where(and(
+        eq(clientFavorites.marketplaceUseCaseId, marketplaceUseCaseId),
+        eq(clientFavorites.userId, userId)
+      ));
+    
+    if (existing.length > 0) {
+      return existing[0];
+    }
+    
+    const [favorite] = await db.insert(clientFavorites).values({
+      marketplaceUseCaseId,
+      userId,
+      clientId,
+    }).returning();
+    return favorite;
+  }
+
+  async removeClientFavorite(marketplaceUseCaseId: string, userId: string): Promise<boolean> {
+    await db.delete(clientFavorites)
+      .where(and(
+        eq(clientFavorites.marketplaceUseCaseId, marketplaceUseCaseId),
+        eq(clientFavorites.userId, userId)
+      ));
+    return true;
+  }
+
+  async getClientFavorites(userId: string): Promise<ClientFavorite[]> {
+    return await db.select().from(clientFavorites)
+      .where(eq(clientFavorites.userId, userId))
+      .orderBy(desc(clientFavorites.createdAt));
+  }
+
+  async getClientFavoritesByClient(clientId: string): Promise<(ClientFavorite & { marketplaceUseCase: MarketplaceUseCase; user: User })[]> {
+    const favorites = await db.select().from(clientFavorites)
+      .where(eq(clientFavorites.clientId, clientId))
+      .orderBy(desc(clientFavorites.createdAt));
+    
+    const result: (ClientFavorite & { marketplaceUseCase: MarketplaceUseCase; user: User })[] = [];
+    for (const fav of favorites) {
+      const [marketplaceUseCase] = await db.select().from(marketplaceUseCases)
+        .where(eq(marketplaceUseCases.id, fav.marketplaceUseCaseId));
+      const [user] = await db.select().from(users)
+        .where(eq(users.id, fav.userId));
+      
+      if (marketplaceUseCase && user) {
+        result.push({
+          ...fav,
+          marketplaceUseCase,
+          user,
+        });
+      }
+    }
+    return result;
+  }
+
+  async isClientFavorite(marketplaceUseCaseId: string, userId: string): Promise<boolean> {
+    const [favorite] = await db.select().from(clientFavorites)
+      .where(and(
+        eq(clientFavorites.marketplaceUseCaseId, marketplaceUseCaseId),
+        eq(clientFavorites.userId, userId)
+      ));
+    return !!favorite;
   }
 }
 

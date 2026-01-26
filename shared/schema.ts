@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, jsonb, pgEnum, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, jsonb, pgEnum, index, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -144,6 +144,20 @@ export const marketplaceRatings = pgTable("marketplace_ratings", {
   index("marketplace_ratings_user_idx").on(table.userId),
 ]);
 
+// Client favorites for marketplace use cases (roadmap for admins)
+export const clientFavorites = pgTable("client_favorites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  marketplaceUseCaseId: varchar("marketplace_use_case_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  clientId: varchar("client_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("client_favorites_use_case_idx").on(table.marketplaceUseCaseId),
+  index("client_favorites_user_idx").on(table.userId),
+  index("client_favorites_client_idx").on(table.clientId),
+  unique("client_favorites_unique").on(table.userId, table.clientId, table.marketplaceUseCaseId),
+]);
+
 // Relations
 export const clientsRelations = relations(clients, ({ many }) => ({
   useCases: many(useCases),
@@ -162,6 +176,21 @@ export const marketplaceRatingsRelations = relations(marketplaceRatings, ({ one 
   user: one(users, {
     fields: [marketplaceRatings.userId],
     references: [users.id],
+  }),
+}));
+
+export const clientFavoritesRelations = relations(clientFavorites, ({ one }) => ({
+  marketplaceUseCase: one(marketplaceUseCases, {
+    fields: [clientFavorites.marketplaceUseCaseId],
+    references: [marketplaceUseCases.id],
+  }),
+  user: one(users, {
+    fields: [clientFavorites.userId],
+    references: [users.id],
+  }),
+  client: one(clients, {
+    fields: [clientFavorites.clientId],
+    references: [clients.id],
   }),
 }));
 
@@ -213,6 +242,11 @@ export const insertMarketplaceRatingSchema = createInsertSchema(marketplaceRatin
   updatedAt: true,
 });
 
+export const insertClientFavoriteSchema = createInsertSchema(clientFavorites).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertClientInvitationSchema = createInsertSchema(clientInvitations).omit({
   id: true,
   createdAt: true,
@@ -259,6 +293,9 @@ export type InsertMarketplaceUseCase = z.infer<typeof insertMarketplaceUseCaseSc
 
 export type MarketplaceRating = typeof marketplaceRatings.$inferSelect;
 export type InsertMarketplaceRating = z.infer<typeof insertMarketplaceRatingSchema>;
+
+export type ClientFavorite = typeof clientFavorites.$inferSelect;
+export type InsertClientFavorite = z.infer<typeof insertClientFavoriteSchema>;
 
 export type ClientInvitation = typeof clientInvitations.$inferSelect;
 export type InsertClientInvitation = z.infer<typeof insertClientInvitationSchema>;

@@ -46,8 +46,9 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Building2, FileText, Sparkles, Loader2, Pencil, ChevronDown, Mail, Trash2, Copy, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Plus, Building2, FileText, Sparkles, Loader2, Pencil, ChevronDown, Mail, Trash2, Copy, CheckCircle, XCircle, Clock, Heart, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import type { MarketplaceUseCase, User as UserType } from "@shared/schema";
 
 // Goal options for use cases
 const goalOptions = [
@@ -90,6 +91,16 @@ const useCaseFormSchema = z.object({
 
 type UseCaseFormValues = z.infer<typeof useCaseFormSchema>;
 
+type ClientFavoriteWithDetails = {
+  id: string;
+  marketplaceUseCaseId: string;
+  userId: string;
+  clientId: string;
+  createdAt: string;
+  marketplaceUseCase: MarketplaceUseCase;
+  user: UserType;
+};
+
 // Client form schema
 const clientFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -116,6 +127,29 @@ export default function AdminPage() {
 
   const { data: invitations = [], isLoading: invitationsLoading } = useQuery<ClientInvitation[]>({
     queryKey: ["/api/invitations"],
+  });
+
+  const [selectedClientForRoadmap, setSelectedClientForRoadmap] = useState<string>("all");
+
+  const { data: clientFavorites = [], isLoading: favoritesLoading } = useQuery<ClientFavoriteWithDetails[]>({
+    queryKey: ["/api/client-favorites/by-client", selectedClientForRoadmap],
+    queryFn: async () => {
+      if (selectedClientForRoadmap === "all") {
+        const allFavorites: ClientFavoriteWithDetails[] = [];
+        for (const client of clients) {
+          const res = await fetch(`/api/client-favorites/by-client/${client.id}`, { credentials: "include" });
+          if (res.ok) {
+            const favs = await res.json();
+            allFavorites.push(...favs);
+          }
+        }
+        return allFavorites;
+      }
+      const res = await fetch(`/api/client-favorites/by-client/${selectedClientForRoadmap}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+    enabled: clients.length > 0,
   });
 
   return (
@@ -294,6 +328,93 @@ export default function AdminPage() {
                     </DialogContent>
                   </Dialog>
                 </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Client Roadmap Section */}
+          <Card className="mt-6">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-red-500" />
+                    Client Roadmap
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Use cases favorited by clients from the marketplace - potential next projects
+                  </p>
+                </div>
+                <Select value={selectedClientForRoadmap} onValueChange={setSelectedClientForRoadmap}>
+                  <SelectTrigger className="w-[200px]" data-testid="select-roadmap-client">
+                    <SelectValue placeholder="Filter by client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Clients</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {favoritesLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : clientFavorites.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Heart className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <p>No client favorites yet.</p>
+                  <p className="text-sm">When clients favorite use cases in the marketplace, they'll appear here as roadmap items.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Use Case</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Favorited By</TableHead>
+                      <TableHead>Industry</TableHead>
+                      <TableHead>Level</TableHead>
+                      <TableHead>Est. ROI</TableHead>
+                      <TableHead>Date Added</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clientFavorites.map((fav) => {
+                      const client = clients.find((c) => c.id === fav.clientId);
+                      return (
+                        <TableRow key={fav.id} data-testid={`row-roadmap-${fav.id}`}>
+                          <TableCell className="font-medium">{fav.marketplaceUseCase.title}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{client?.name || "Unknown"}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <User className="h-3 w-3" />
+                              {fav.user.firstName || fav.user.email}
+                            </div>
+                          </TableCell>
+                          <TableCell>{fav.marketplaceUseCase.industryVertical}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">Level {fav.marketplaceUseCase.level}</Badge>
+                          </TableCell>
+                          <TableCell className="text-green-600 dark:text-green-400">
+                            ${fav.marketplaceUseCase.roiDollarsPerMonth || 0}/mo
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {new Date(fav.createdAt).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>

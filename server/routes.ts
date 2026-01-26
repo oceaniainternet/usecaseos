@@ -493,6 +493,98 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
     }
   });
 
+  // Client Favorites API (marketplace roadmap for admins)
+  app.get("/api/client-favorites", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const favorites = await storage.getClientFavorites(userId);
+      res.json(favorites);
+    } catch (error) {
+      console.error("Error fetching client favorites:", error);
+      res.status(500).json({ message: "Failed to fetch favorites" });
+    }
+  });
+
+  app.get("/api/client-favorites/by-client/:clientId", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Check if user is an admin (not a client user) or is associated with this client
+      const userClients = await storage.getUserClients(userId);
+      const isClientUser = userClients.length > 0;
+      const isAssociatedWithClient = userClients.some(uc => uc.clientId === req.params.clientId);
+
+      // Only allow access if: user is admin (not a client user) OR user is associated with the requested client
+      if (isClientUser && !isAssociatedWithClient) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const favorites = await storage.getClientFavoritesByClient(req.params.clientId);
+      res.json(favorites);
+    } catch (error) {
+      console.error("Error fetching client favorites by client:", error);
+      res.status(500).json({ message: "Failed to fetch favorites" });
+    }
+  });
+
+  app.post("/api/marketplace/:id/favorite", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Get user's client association
+      const userClients = await storage.getUserClients(userId);
+      if (userClients.length === 0) {
+        return res.status(403).json({ message: "No client association found" });
+      }
+
+      const clientId = userClients[0].clientId;
+      const favorite = await storage.addClientFavorite(req.params.id, userId, clientId);
+      res.status(201).json(favorite);
+    } catch (error) {
+      console.error("Error adding favorite:", error);
+      res.status(500).json({ message: "Failed to add favorite" });
+    }
+  });
+
+  app.delete("/api/marketplace/:id/favorite", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      await storage.removeClientFavorite(req.params.id, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing favorite:", error);
+      res.status(500).json({ message: "Failed to remove favorite" });
+    }
+  });
+
+  app.get("/api/marketplace/:id/favorite", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const isFavorite = await storage.isClientFavorite(req.params.id, userId);
+      res.json({ isFavorite });
+    } catch (error) {
+      console.error("Error checking favorite status:", error);
+      res.status(500).json({ message: "Failed to check favorite status" });
+    }
+  });
+
   // Client Invitation API
   app.get("/api/invitations", isAuthenticated, async (req, res) => {
     try {
