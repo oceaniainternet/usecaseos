@@ -1,14 +1,10 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation, Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { useToast } from "@/hooks/use-toast";
 import { 
   LayoutGrid, 
-  LogOut, 
   Building, 
   Clock, 
   DollarSign, 
@@ -20,7 +16,6 @@ import {
   Sparkles,
   ChevronRight
 } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UseCase, Client } from "@shared/schema";
 
 type UseCaseWithClient = UseCase & { clientName?: string };
@@ -80,9 +75,6 @@ function getRiskBadge(risk: string | null) {
 }
 
 export default function ClientPortalPage() {
-  const [, setLocation] = useLocation();
-  const { toast } = useToast();
-
   const { data: useCases, isLoading: useCasesLoading } = useQuery<UseCaseWithClient[]>({
     queryKey: ["/api/client-portal/use-cases"],
   });
@@ -91,146 +83,106 @@ export default function ClientPortalPage() {
     queryKey: ["/api/client-portal/clients"],
   });
 
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", "/api/logout", {});
-    },
-    onSuccess: () => {
-      queryClient.clear();
-      setLocation("/client-login");
-    },
-    onError: () => {
-      toast({
-        title: "Logout failed",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
   const totalTimeSaved = useCases?.reduce((sum, uc) => sum + (uc.roiTimeSavedMinutesPerWeek || 0), 0) || 0;
   const totalMonthlySavings = useCases?.reduce((sum, uc) => sum + (uc.roiDollarsPerMonth || 0), 0) || 0;
   const liveCount = useCases?.filter(uc => uc.status === "Live" || uc.status === "Optimising").length || 0;
 
   if (useCasesLoading || clientsLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-10 w-24" />
-          </div>
-        </header>
-        <main className="container mx-auto px-4 py-8">
-          <div className="grid gap-4 md:grid-cols-3 mb-8">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-24" />
-            ))}
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton key={i} className="h-48" />
-            ))}
-          </div>
-        </main>
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-48" />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <LayoutGrid className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold">Client Portal</h1>
-            {clients && clients.length > 0 && (
-              <Badge variant="outline" className="hidden sm:flex">
-                <Building className="w-3 h-3 mr-1" />
-                {clients.map(c => c.name).join(", ")}
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => logoutMutation.mutate()}
-              data-testid="button-client-logout"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
-          <Card>
-            <CardContent className="flex items-center gap-4 p-6">
-              <div className="p-3 bg-primary/10 rounded-full">
-                <LayoutGrid className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Use Cases</p>
-                <p className="text-2xl font-bold">{useCases?.length || 0}</p>
-                <p className="text-xs text-muted-foreground">{liveCount} Live</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="flex items-center gap-4 p-6">
-              <div className="p-3 bg-green-500/10 rounded-full">
-                <Clock className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Time Saved Weekly</p>
-                <p className="text-2xl font-bold">{Math.round(totalTimeSaved / 60)}h {totalTimeSaved % 60}m</p>
-                <p className="text-xs text-muted-foreground">{totalTimeSaved} minutes</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="flex items-center gap-4 p-6">
-              <div className="p-3 bg-emerald-500/10 rounded-full">
-                <DollarSign className="h-6 w-6 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Monthly Savings</p>
-                <p className="text-2xl font-bold">${totalMonthlySavings.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">${(totalMonthlySavings * 12).toLocaleString()}/year</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-2">Your Use Cases</h2>
-          <p className="text-sm text-muted-foreground">
-            Track the progress of automation initiatives for your organization
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="text-dashboard-title">
+          <LayoutGrid className="h-6 w-6" />
+          Dashboard
+        </h1>
+        {clients && clients.length > 0 && (
+          <p className="text-muted-foreground flex items-center gap-1 mt-1">
+            <Building className="w-4 h-4" />
+            {clients.map(c => c.name).join(", ")}
           </p>
-        </div>
+        )}
+      </div>
 
-        {useCases && useCases.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <LayoutGrid className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Use Cases Yet</h3>
-              <p className="text-muted-foreground text-center">
-                Your consultant hasn't added any use cases for your organization yet.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {useCases?.map((useCase) => (
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardContent className="flex items-center gap-4 p-6">
+            <div className="p-3 bg-primary/10 rounded-full">
+              <LayoutGrid className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total Use Cases</p>
+              <p className="text-2xl font-bold" data-testid="text-total-usecases">{useCases?.length || 0}</p>
+              <p className="text-xs text-muted-foreground">{liveCount} Live</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex items-center gap-4 p-6">
+            <div className="p-3 bg-green-500/10 rounded-full">
+              <Clock className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Time Saved Weekly</p>
+              <p className="text-2xl font-bold" data-testid="text-time-saved">{Math.round(totalTimeSaved / 60)}h {totalTimeSaved % 60}m</p>
+              <p className="text-xs text-muted-foreground">{totalTimeSaved} minutes</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex items-center gap-4 p-6">
+            <div className="p-3 bg-emerald-500/10 rounded-full">
+              <DollarSign className="h-6 w-6 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Monthly Savings</p>
+              <p className="text-2xl font-bold" data-testid="text-monthly-savings">${totalMonthlySavings.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">${(totalMonthlySavings * 12).toLocaleString()}/year</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold mb-2">Your Use Cases</h2>
+        <p className="text-sm text-muted-foreground">
+          Click on a use case to view full details
+        </p>
+      </div>
+
+      {useCases && useCases.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <LayoutGrid className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">No Use Cases Yet</h3>
+            <p className="text-muted-foreground text-center">
+              Your consultant hasn't added any use cases for your organization yet.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {useCases?.map((useCase) => (
+            <Link key={useCase.id} href={`/client-portal/use-case/${useCase.id}`}>
               <Card 
-                key={useCase.id} 
-                className="hover-elevate cursor-pointer"
+                className="hover-elevate cursor-pointer h-full"
                 data-testid={`card-usecase-${useCase.id}`}
               >
                 <CardHeader className="pb-3">
@@ -270,10 +222,10 @@ export default function ClientPortalPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
-      </main>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

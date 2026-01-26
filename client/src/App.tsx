@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth, AuthProvider } from "@/hooks/use-auth";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { ClientSidebar } from "@/components/client-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/landing";
@@ -19,6 +20,9 @@ import MarketplacePage from "@/pages/marketplace";
 import ClientLoginPage from "@/pages/client-login";
 import AcceptInvitePage from "@/pages/accept-invite";
 import ClientPortalPage from "@/pages/client-portal";
+import ClientUseCaseDetailPage from "@/pages/client-use-case-detail";
+import ClientAccountPage from "@/pages/client-account";
+import ClientMarketplacePage from "@/pages/client-marketplace";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const style = {
@@ -33,6 +37,30 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col flex-1 overflow-hidden">
           <header className="flex items-center justify-between gap-2 p-3 border-b bg-background/80 backdrop-blur-sm">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
+            <ThemeToggle />
+          </header>
+          <main className="flex-1 overflow-auto p-6">
+            {children}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
+
+function ClientAuthenticatedLayout({ children }: { children: React.ReactNode }) {
+  const style = {
+    "--sidebar-width": "16rem",
+    "--sidebar-width-icon": "3rem",
+  };
+
+  return (
+    <SidebarProvider style={style as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <ClientSidebar />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <header className="flex items-center justify-between gap-2 p-3 border-b bg-background/80 backdrop-blur-sm">
+            <SidebarTrigger data-testid="button-client-sidebar-toggle" />
             <ThemeToggle />
           </header>
           <main className="flex-1 overflow-auto p-6">
@@ -59,6 +87,20 @@ function AuthenticatedRoutes() {
   );
 }
 
+function ClientAuthenticatedRoutes() {
+  return (
+    <ClientAuthenticatedLayout>
+      <Switch>
+        <Route path="/client-portal" component={ClientPortalPage} />
+        <Route path="/client-portal/use-case/:id" component={ClientUseCaseDetailPage} />
+        <Route path="/client-marketplace" component={ClientMarketplacePage} />
+        <Route path="/client-account" component={ClientAccountPage} />
+        <Route component={() => <Redirect to="/client-portal" />} />
+      </Switch>
+    </ClientAuthenticatedLayout>
+  );
+}
+
 function Router() {
   const { user, isLoading } = useAuth();
 
@@ -81,13 +123,20 @@ function Router() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/client-login" component={ClientLoginPage} />
         <Route path="/accept-invite" component={AcceptInvitePage} />
-        <Route path="/client-portal" component={ClientPortalPage} />
         <Route component={LandingPage} />
       </Switch>
     );
   }
 
-  return <AuthenticatedRoutes />;
+  return (
+    <Switch>
+      <Route path="/client-portal" component={() => <ClientAuthenticatedRoutes />} />
+      <Route path="/client-portal/:rest*" component={() => <ClientAuthenticatedRoutes />} />
+      <Route path="/client-marketplace" component={() => <ClientAuthenticatedRoutes />} />
+      <Route path="/client-account" component={() => <ClientAuthenticatedRoutes />} />
+      <Route component={() => <AuthenticatedRoutes />} />
+    </Switch>
+  );
 }
 
 function App() {
