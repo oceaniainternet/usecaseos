@@ -128,6 +128,22 @@ function Router() {
     );
   }
 
+  // Client users should only access client portal routes
+  if (user.isClientUser) {
+    return (
+      <ClientAuthenticatedLayout>
+        <Switch>
+          <Route path="/client-portal" component={ClientPortalPage} />
+          <Route path="/client-portal/use-case/:id" component={ClientUseCaseDetailPage} />
+          <Route path="/client-marketplace" component={ClientMarketplacePage} />
+          <Route path="/client-account" component={ClientAccountPage} />
+          <Route component={() => <Redirect to="/client-portal" />} />
+        </Switch>
+      </ClientAuthenticatedLayout>
+    );
+  }
+
+  // Admin/consultant users can access both admin and client routes
   return (
     <Switch>
       <Route path="/client-portal" component={() => <ClientAuthenticatedRoutes />} />

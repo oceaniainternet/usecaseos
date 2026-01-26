@@ -13,6 +13,7 @@ type SelectUser = {
   firstName: string | null;
   lastName: string | null;
   createdAt: Date;
+  isClientUser?: boolean;
 };
 
 type InsertUser = {

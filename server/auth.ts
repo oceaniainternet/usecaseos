@@ -126,10 +126,15 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const { password: _, ...safeUser } = req.user as SelectUser;
-    res.json(safeUser);
+    
+    // Check if user is a client user (has client associations)
+    const userClients = await storage.getUserClients(safeUser.id);
+    const isClientUser = userClients.length > 0;
+    
+    res.json({ ...safeUser, isClientUser });
   });
 }
 
