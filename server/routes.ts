@@ -6,6 +6,7 @@ import { insertClientSchema, insertUseCaseSchema, storyGeneratorInputSchema, clo
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcrypt";
+import { sendEmail, generateInvitationEmail } from "./email";
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -624,11 +625,29 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
         userId
       );
 
-      // In production, you would send an email here
-      // For now, we return the invitation with the token for testing
+      // Get client name for the email
+      const client = await storage.getClient(parsed.data.clientId);
+      const clientName = client?.name || 'your organization';
+
+      // Generate the full invite link
+      const baseUrl = process.env.REPL_SLUG 
+        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+        : `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+      const inviteLink = `${baseUrl}/accept-invite?token=${invitation.token}`;
+
+      // Send invitation email
+      const { subject, htmlBody, textBody } = generateInvitationEmail(clientName, inviteLink);
+      const emailSent = await sendEmail({
+        to: parsed.data.email,
+        subject,
+        htmlBody,
+        textBody,
+      });
+
       res.status(201).json({
         ...invitation,
         inviteLink: `/accept-invite?token=${invitation.token}`,
+        emailSent,
       });
     } catch (error) {
       console.error("Error creating invitation:", error);
