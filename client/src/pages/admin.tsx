@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -235,16 +236,21 @@ export default function AdminPage() {
         <TabsContent value="clients" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-medium">Clients</h2>
-            <Dialog open={clientDialogOpen} onOpenChange={setClientDialogOpen}>
+            <Dialog open={clientDialogOpen} onOpenChange={setClientDialogOpen} modal={true}>
               <DialogTrigger asChild>
                 <Button data-testid="button-add-client">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Client
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+              >
                 <DialogHeader>
                   <DialogTitle>Add New Client</DialogTitle>
+                  <DialogDescription>Enter the details for the new client</DialogDescription>
                 </DialogHeader>
                 <ClientForm onSuccess={() => setClientDialogOpen(false)} />
               </DialogContent>
@@ -309,7 +315,7 @@ export default function AdminPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Dialog open={useCaseDialogOpen} onOpenChange={setUseCaseDialogOpen}>
+            <Dialog open={useCaseDialogOpen} onOpenChange={setUseCaseDialogOpen} modal={true}>
               <DialogTrigger asChild>
                 <Button data-testid="button-add-usecase">
                   <Plus className="h-4 w-4 mr-2" />
@@ -321,10 +327,11 @@ export default function AdminPage() {
                 onPointerDownOutside={(e) => e.preventDefault()}
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
+                onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <DialogHeader>
                   <DialogTitle>Add New Use Case</DialogTitle>
-                  <p className="text-sm text-muted-foreground">Fill in the details to create a new use case</p>
+                  <DialogDescription>Fill in the details to create a new use case</DialogDescription>
                 </DialogHeader>
                 <UseCaseForm clients={clients} onSuccess={() => setUseCaseDialogOpen(false)} />
               </DialogContent>
@@ -403,16 +410,17 @@ export default function AdminPage() {
                   </Table>
 
                   {/* Edit Use Case Dialog */}
-                  <Dialog open={editUseCaseDialogOpen} onOpenChange={setEditUseCaseDialogOpen}>
+                  <Dialog open={editUseCaseDialogOpen} onOpenChange={setEditUseCaseDialogOpen} modal={true}>
                     <DialogContent 
                       className="max-w-2xl max-h-[90vh] overflow-y-auto"
                       onPointerDownOutside={(e) => e.preventDefault()}
                       onInteractOutside={(e) => e.preventDefault()}
                       onEscapeKeyDown={(e) => e.preventDefault()}
+                      onOpenAutoFocus={(e) => e.preventDefault()}
                     >
                       <DialogHeader>
                         <DialogTitle>Edit Use Case</DialogTitle>
-                        <p className="text-sm text-muted-foreground">Update the use case details</p>
+                        <DialogDescription>Update the use case details</DialogDescription>
                       </DialogHeader>
                       {selectedUseCase && (
                         <EditUseCaseForm 
@@ -523,16 +531,21 @@ export default function AdminPage() {
         <TabsContent value="invitations" className="space-y-4">
           <div className="flex justify-between items-center gap-4">
             <h2 className="text-lg font-medium">Client Invitations</h2>
-            <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+            <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen} modal={true}>
               <DialogTrigger asChild>
                 <Button data-testid="button-invite-client">
                   <Mail className="h-4 w-4 mr-2" />
                   Invite Client
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+              >
                 <DialogHeader>
                   <DialogTitle>Invite Client</DialogTitle>
+                  <DialogDescription>Send an email invitation to a client</DialogDescription>
                 </DialogHeader>
                 <InviteClientForm clients={clients} onSuccess={() => setInviteDialogOpen(false)} />
               </DialogContent>
