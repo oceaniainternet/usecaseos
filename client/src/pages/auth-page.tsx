@@ -53,7 +53,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <img src={solvityLogo} alt="Solvity.ai" className="h-[120px] w-[120px]" />
+            <img src={solvityLogo} alt="Solvity.ai" className="h-[120px] w-[120px] hue-rotate-[30deg]" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Solvity.ai</h1>
@@ -63,7 +63,7 @@ export default function AuthPage() {
           </div>
         </div>
 
-        <Card className="shadow-lg">
+        <Card className="shadow-lg border-0">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-xl">Sign in to your account</CardTitle>
           </CardHeader>
