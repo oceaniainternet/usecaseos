@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Users, Eye, BarChart3 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -37,7 +37,9 @@ export default function ClientLoginPage() {
       const res = await apiRequest("POST", "/api/client-login", data);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Invalidate user query to refresh auth state before redirect
+      await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Welcome back",
         description: "You have been logged in successfully.",

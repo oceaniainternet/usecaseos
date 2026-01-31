@@ -898,9 +898,15 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
       if (data.storyToday) {
         form.setValue("storyToday", data.storyToday);
       }
-      form.setValue("storyFuture", data.storyFuture);
-      form.setValue("personaStory", data.personaStory);
-      form.setValue("controls", data.controls.join("\n"));
+      if (data.storyFuture) {
+        form.setValue("storyFuture", data.storyFuture);
+      }
+      if (data.personaStory) {
+        form.setValue("personaStory", data.personaStory);
+      }
+      if (Array.isArray(data.controls)) {
+        form.setValue("controls", data.controls.join("\n"));
+      }
       toast({ title: "Story generated successfully" });
     } catch (error) {
       toast({ title: "Failed to generate story", variant: "destructive" });
@@ -1494,9 +1500,15 @@ function EditUseCaseForm({
       if (data.storyToday) {
         form.setValue("storyToday", data.storyToday);
       }
-      form.setValue("storyFuture", data.storyFuture);
-      form.setValue("personaStory", data.personaStory);
-      form.setValue("controls", data.controls.join("\n"));
+      if (data.storyFuture) {
+        form.setValue("storyFuture", data.storyFuture);
+      }
+      if (data.personaStory) {
+        form.setValue("personaStory", data.personaStory);
+      }
+      if (Array.isArray(data.controls)) {
+        form.setValue("controls", data.controls.join("\n"));
+      }
       toast({ title: "Story generated successfully" });
     } catch (e) {
       toast({ title: "Failed to generate story", variant: "destructive" });

@@ -690,9 +690,9 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
       const client = await storage.getClient(parsed.data.clientId);
       const clientName = client?.name || 'your organization';
 
-      // Generate the full invite link
-      const baseUrl = process.env.REPL_SLUG 
-        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+      // Generate the full invite link - use production domain in production
+      const baseUrl = process.env.NODE_ENV === 'production'
+        ? 'https://solvity.ai'
         : `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
       const inviteLink = `${baseUrl}/accept-invite?token=${invitation.token}`;
 
