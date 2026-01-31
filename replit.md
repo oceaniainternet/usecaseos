@@ -79,10 +79,13 @@ Uses username/password authentication with Passport.js local strategy. Routes:
 - `POST /api/login` - Login (body: {email, password})
 - `POST /api/logout` - Logout current session
 - `GET /api/user` - Get current authenticated user
+- `POST /api/forgot-password` - Request password reset email (body: {email})
+- `POST /api/reset-password` - Complete password reset (body: {token, password})
 
 All API endpoints (except auth) require authentication via `isAuthenticated` middleware.
 
-Test user: phillipb@oceaniainternet.com.au / 123abcd
+Test user: phillipb@oceaniainternet.com.au / 123abcd (consultant)
+Test user: phillip@onelane.com.au / 123abcd (client)
 
 ## Features
 
