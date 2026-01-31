@@ -27,7 +27,7 @@ import {
   Store,
   User,
 } from "lucide-react";
-import solvityLogo from "@assets/solvityai_logo_1769819575419.png";
+import solvityLogo from "@assets/solvityai_logo_1769821491441.png";
 
 const mainNavItems = [
   {
