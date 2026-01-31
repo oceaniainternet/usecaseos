@@ -115,6 +115,17 @@ Five tabs:
 4. **ROI**: Baseline time, time saved, estimated monthly value
 5. **Notes**: Collaboration notes between clients and consultants (add, view, delete notes)
 
+### Client Approval (Client Portal)
+Located on client use case detail pages, allows clients to communicate their decision:
+- **Approve** (green) - Client wants to proceed with the use case
+- **Needs Discussion** (amber) - Client has questions and wants to discuss further
+- **Not Now** (gray) - Client wants to defer this use case for later
+
+When a client clicks any approval button:
+- Use case is updated with clientApprovalStatus, timestamp, and user ID
+- Email notification is sent to hello@solvity.ai with use case details and client decision
+- Only CLIENT role users can submit approvals (not admins/consultants)
+
 ### Value Wheel (Interactive Business Value Visualization)
 Located on the Overview tab, the Value Wheel shows how the use case drives business outcomes:
 - **Time Savings**: Minutes/hours saved weekly based on ROI metrics

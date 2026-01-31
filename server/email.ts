@@ -112,3 +112,79 @@ If you didn't expect this email, you can safely ignore it.
 
   return { subject, htmlBody, textBody };
 }
+
+export function generateApprovalEmail(
+  useCaseTitle: string,
+  clientName: string,
+  approvalStatus: string,
+  approverName: string,
+  approverEmail: string
+): { subject: string; htmlBody: string; textBody: string } {
+  const statusEmoji = approvalStatus === "Approved" ? "✅" : 
+                      approvalStatus === "Needs Discussion" ? "💬" : "⏸️";
+  const statusColor = approvalStatus === "Approved" ? "#10b981" : 
+                      approvalStatus === "Needs Discussion" ? "#f59e0b" : "#6b7280";
+  
+  const subject = `${statusEmoji} Client Approval: "${useCaseTitle}" - ${approvalStatus}`;
+  
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <h1 style="color: #10b981; margin: 0;">Solvity.ai</h1>
+  </div>
+  
+  <div style="background-color: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
+    <h2 style="margin-top: 0; color: #111827;">Client Approval Update</h2>
+    
+    <div style="background-color: white; border-radius: 6px; padding: 20px; margin-bottom: 20px; border-left: 4px solid ${statusColor};">
+      <p style="margin: 0 0 10px 0; font-size: 14px; color: #6b7280;">Use Case</p>
+      <p style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">${useCaseTitle}</p>
+    </div>
+    
+    <div style="display: grid; gap: 15px;">
+      <div>
+        <p style="margin: 0 0 5px 0; font-size: 14px; color: #6b7280;">Client</p>
+        <p style="margin: 0; font-weight: 500;">${clientName}</p>
+      </div>
+      <div>
+        <p style="margin: 0 0 5px 0; font-size: 14px; color: #6b7280;">Status</p>
+        <p style="margin: 0; font-weight: 600; color: ${statusColor};">${statusEmoji} ${approvalStatus}</p>
+      </div>
+      <div>
+        <p style="margin: 0 0 5px 0; font-size: 14px; color: #6b7280;">Submitted By</p>
+        <p style="margin: 0; font-weight: 500;">${approverName} (${approverEmail})</p>
+      </div>
+      <div>
+        <p style="margin: 0 0 5px 0; font-size: 14px; color: #6b7280;">Date</p>
+        <p style="margin: 0;">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+      </div>
+    </div>
+  </div>
+  
+  <div style="text-align: center; font-size: 12px; color: #9ca3af;">
+    <p>&copy; ${new Date().getFullYear()} Solvity.ai. All rights reserved.</p>
+  </div>
+</body>
+</html>
+`;
+
+  const textBody = `
+Client Approval Update - Solvity.ai
+
+Use Case: ${useCaseTitle}
+Client: ${clientName}
+Status: ${approvalStatus}
+Submitted By: ${approverName} (${approverEmail})
+Date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+
+© ${new Date().getFullYear()} Solvity.ai. All rights reserved.
+`;
+
+  return { subject, htmlBody, textBody };
+}

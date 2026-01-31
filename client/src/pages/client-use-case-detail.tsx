@@ -24,7 +24,10 @@ import {
   MessageSquare,
   Send,
   Trash2,
-  Loader2
+  Loader2,
+  Check,
+  MessageCircle,
+  Pause
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ValueWheel } from "@/components/ValueWheel";
@@ -147,6 +150,9 @@ export default function ClientUseCaseDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Client Approval Section */}
+      <ApprovalSection useCase={useCase} />
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList data-testid="tabs-usecase-detail">
@@ -596,5 +602,101 @@ function NotesTab({ useCaseId }: { useCaseId: string }) {
         )}
       </div>
     </div>
+  );
+}
+
+const approvalStatusColors: Record<string, string> = {
+  Pending: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  Approved: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  "Needs Discussion": "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+  "Not Now": "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+};
+
+function ApprovalSection({ useCase }: { useCase: UseCase }) {
+  const { toast } = useToast();
+  const currentStatus = useCase.clientApprovalStatus || "Pending";
+
+  const approvalMutation = useMutation({
+    mutationFn: async (status: "Approved" | "Needs Discussion" | "Not Now") => {
+      return apiRequest("POST", `/api/client-portal/use-cases/${useCase.id}/approval`, { status });
+    },
+    onSuccess: (_, status) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/client-portal/use-cases"] });
+      toast({ 
+        title: "Approval submitted",
+        description: `Your response "${status}" has been sent to the Galaxis team.`
+      });
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to submit approval", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  return (
+    <Card className="border-primary/20">
+      <CardContent className="pt-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-base mb-1">Your Decision</h3>
+            <p className="text-sm text-muted-foreground">
+              Let us know how you'd like to proceed with this use case.
+            </p>
+            {currentStatus !== "Pending" && (
+              <div className="mt-2">
+                <Badge className={cn(approvalStatusColors[currentStatus], "border-0")}>
+                  Current: {currentStatus}
+                </Badge>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => approvalMutation.mutate("Approved")}
+              disabled={approvalMutation.isPending}
+              className="bg-green-600 hover:bg-green-700 text-white"
+              data-testid="button-approve"
+            >
+              {approvalMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4 mr-2" />
+              )}
+              Approve
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => approvalMutation.mutate("Needs Discussion")}
+              disabled={approvalMutation.isPending}
+              className="border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+              data-testid="button-needs-discussion"
+            >
+              {approvalMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <MessageCircle className="h-4 w-4 mr-2" />
+              )}
+              Needs Discussion
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => approvalMutation.mutate("Not Now")}
+              disabled={approvalMutation.isPending}
+              className="border-gray-400 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+              data-testid="button-not-now"
+            >
+              {approvalMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Pause className="h-4 w-4 mr-2" />
+              )}
+              Not Now
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

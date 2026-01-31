@@ -2,11 +2,11 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertClientSchema, insertUseCaseSchema, storyGeneratorInputSchema, cloneMarketplaceUseCaseSchema, rateMarketplaceUseCaseSchema, createClientInvitationSchema, acceptInvitationSchema, type StoryGeneratorOutput } from "@shared/schema";
+import { insertClientSchema, insertUseCaseSchema, storyGeneratorInputSchema, cloneMarketplaceUseCaseSchema, rateMarketplaceUseCaseSchema, createClientInvitationSchema, acceptInvitationSchema, updateClientApprovalSchema, type StoryGeneratorOutput } from "@shared/schema";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcrypt";
-import { sendEmail, generateInvitationEmail } from "./email";
+import { sendEmail, generateInvitationEmail, generateApprovalEmail } from "./email";
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -894,6 +894,88 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
     } catch (error) {
       console.error("Error fetching client portal clients:", error);
       res.status(500).json({ message: "Failed to fetch clients" });
+    }
+  });
+
+  // Client approval endpoint - update approval status and send email notification
+  app.post("/api/client-portal/use-cases/:id/approval", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const useCaseId = req.params.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const parsed = updateClientApprovalSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid approval status", errors: parsed.error.errors });
+      }
+
+      const { status } = parsed.data;
+
+      // Verify user is a client user (not admin/consultant) and has access to this use case
+      const userClients = await storage.getUserClients(userId);
+      const useCase = await storage.getUseCase(useCaseId);
+      
+      if (!useCase) {
+        return res.status(404).json({ message: "Use case not found" });
+      }
+
+      // Check user has CLIENT role association with the use case's client
+      const clientAssociation = userClients.find(uc => uc.clientId === useCase.clientId);
+      if (!clientAssociation) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Only CLIENT role users can submit approvals (not ADMIN/consultants)
+      if (clientAssociation.role !== "CLIENT") {
+        return res.status(403).json({ message: "Only client users can submit approvals" });
+      }
+
+      // Get client and user info for the email
+      const client = await storage.getClient(useCase.clientId);
+      const user = await storage.getUser(userId);
+
+      if (!client || !user) {
+        return res.status(404).json({ message: "Client or user not found" });
+      }
+
+      // Update the use case with approval status
+      const updatedUseCase = await storage.updateUseCase(useCaseId, {
+        clientApprovalStatus: status,
+        clientApprovalAt: new Date(),
+        clientApprovalUserId: userId,
+      });
+
+      // Get approver's display name
+      const approverName = user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : user.email;
+
+      // Send email notification to hello@solvity.ai
+      const emailContent = generateApprovalEmail(
+        useCase.title,
+        client.name,
+        status,
+        approverName,
+        user.email
+      );
+
+      await sendEmail({
+        to: "hello@solvity.ai",
+        subject: emailContent.subject,
+        htmlBody: emailContent.htmlBody,
+        textBody: emailContent.textBody,
+      });
+
+      res.json({ 
+        message: "Approval status updated successfully",
+        useCase: updatedUseCase,
+      });
+    } catch (error) {
+      console.error("Error updating client approval:", error);
+      res.status(500).json({ message: "Failed to update approval status" });
     }
   });
 
