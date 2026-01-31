@@ -53,7 +53,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <img src={solvityLogo} alt="Solvity.ai" className="h-20 w-20" />
+            <img src={solvityLogo} alt="Solvity.ai" className="h-[120px] w-[120px]" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Solvity.ai</h1>
