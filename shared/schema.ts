@@ -17,6 +17,7 @@ export const riskRatingEnum = pgEnum("risk_rating", ["None", "Low", "Medium", "H
 export const dataFlowEnum = pgEnum("data_flow", ["LocalOnly", "VendorTools", "CloudLLM"]);
 export const humanInLoopEnum = pgEnum("human_in_loop", ["Required", "Optional", "None"]);
 export const useCaseGoalEnum = pgEnum("use_case_goal", ["Leads", "Fewer Phone Calls", "Education", "Cost Savings", "Customer Retention", "Efficiency", "Compliance", "Revenue Growth", "Other"]);
+export const clientApprovalStatusEnum = pgEnum("client_approval_status", ["Pending", "Approved", "Needs Discussion", "Not Now"]);
 
 // Users table for username/password authentication
 export const users = pgTable("users", {
@@ -95,6 +96,9 @@ export const useCases = pgTable("use_cases", {
   lastRunAt: timestamp("last_run_at"),
   nextRunAt: timestamp("next_run_at"),
   priorityOrder: integer("priority_order").notNull().default(0),
+  clientApprovalStatus: clientApprovalStatusEnum("client_approval_status").default("Pending"),
+  clientApprovalAt: timestamp("client_approval_at"),
+  clientApprovalUserId: varchar("client_approval_user_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -303,6 +307,10 @@ export const acceptInvitationSchema = z.object({
 
 export const rateMarketplaceUseCaseSchema = z.object({
   rating: z.number().int().min(1).max(5),
+});
+
+export const updateClientApprovalSchema = z.object({
+  status: z.enum(["Approved", "Needs Discussion", "Not Now"]),
 });
 
 // Types
