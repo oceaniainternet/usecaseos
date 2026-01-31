@@ -6,47 +6,27 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Loader2, Zap, BarChart3, Shield } from "lucide-react";
+import { Loader2, Mail, Lock, Squirrel } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(1, "Password is required"),
 });
 
-const registerSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-});
-
 type LoginForm = z.infer<typeof loginSchema>;
-type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
-  const { user, loginMutation, registerMutation } = useAuth();
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const { user, loginMutation } = useAuth();
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
-    },
-  });
-
-  const registerForm = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      firstName: "",
-      lastName: "",
     },
   });
 
@@ -63,225 +43,155 @@ export default function AuthPage() {
     });
   };
 
-  const onRegister = (data: RegisterForm) => {
-    registerMutation.mutate({
-      email: data.email,
-      password: data.password,
-      firstName: data.firstName || null,
-      lastName: data.lastName || null,
-    }, {
-      onSuccess: () => {
-        setLocation("/dashboard");
-      },
-    });
-  };
-
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="flex flex-col justify-center items-center p-8 bg-background">
-        <div className="absolute top-4 right-4">
-          <ThemeToggle />
-        </div>
-        
-        <div className="w-full max-w-md space-y-6">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">UseCaseOS</h1>
-            <p className="text-muted-foreground">Sign in to manage your automation use cases</p>
-          </div>
-
-          <Card>
-            <CardHeader className="pb-4">
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "register")}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login" data-testid="tab-login">Sign In</TabsTrigger>
-                  <TabsTrigger value="register" data-testid="tab-register">Register</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </CardHeader>
-            <CardContent>
-              {activeTab === "login" ? (
-                <Form {...loginForm}>
-                  <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
-                    <FormField
-                      control={loginForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="email" 
-                              placeholder="your@email.com" 
-                              data-testid="input-login-email"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={loginForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="password" 
-                              placeholder="Enter your password"
-                              data-testid="input-login-password"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
-                      disabled={loginMutation.isPending}
-                      data-testid="button-login-submit"
-                    >
-                      {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Sign In
-                    </Button>
-                  </form>
-                </Form>
-              ) : (
-                <Form {...registerForm}>
-                  <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={registerForm.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>First Name</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="John"
-                                data-testid="input-register-firstname"
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Last Name</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Doe"
-                                data-testid="input-register-lastname"
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <FormField
-                      control={registerForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="email" 
-                              placeholder="your@email.com"
-                              data-testid="input-register-email"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={registerForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="password" 
-                              placeholder="At least 6 characters"
-                              data-testid="input-register-password"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
-                      disabled={registerMutation.isPending}
-                      data-testid="button-register-submit"
-                    >
-                      {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Create Account
-                    </Button>
-                  </form>
-                </Form>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30 p-4">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
       </div>
-
-      <div className="hidden lg:flex flex-col justify-center items-center p-12 bg-primary text-primary-foreground">
-        <div className="max-w-md space-y-8">
-          <div className="space-y-4">
-            <h2 className="text-4xl font-bold">Transform workflows into measurable ROI</h2>
-            <p className="text-lg opacity-90">
-              Create and manage Use Case Story Cards to track automation opportunities, 
-              assess risks, and demonstrate real value for your clients.
+      
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center space-y-4">
+          <div className="flex justify-center">
+            <div className="p-4 bg-emerald-500 rounded-2xl">
+              <Squirrel className="h-12 w-12 text-white" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Solvity.ai</h1>
+            <p className="text-muted-foreground mt-2">
+              Capture, collaborate, and prioritize AI use cases for your organization
             </p>
           </div>
+        </div>
 
-          <div className="space-y-6">
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-primary-foreground/10 rounded-lg">
-                <Zap className="h-6 w-6" />
+        <Card className="shadow-lg">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-xl">Sign in to your account</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Form {...loginForm}>
+              <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                <FormField
+                  control={loginForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email address</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            type="email" 
+                            placeholder="you@example.com" 
+                            className="pl-10"
+                            data-testid="input-login-email"
+                            {...field} 
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={loginForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Password</FormLabel>
+                        <button 
+                          type="button" 
+                          className="text-sm text-emerald-600 dark:text-emerald-400"
+                          data-testid="button-forgot-password"
+                          onClick={() => {}}
+                        >
+                          Forgot password?
+                        </button>
+                      </div>
+                      <FormControl>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            type="password" 
+                            placeholder="Enter your password"
+                            className="pl-10"
+                            data-testid="input-login-password"
+                            {...field} 
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button 
+                  type="submit" 
+                  className="w-full bg-emerald-500 text-white" 
+                  disabled={loginMutation.isPending}
+                  data-testid="button-login-submit"
+                >
+                  {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Sign in
+                </Button>
+              </form>
+            </Form>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
               </div>
-              <div>
-                <h3 className="font-semibold">Automation Levels</h3>
-                <p className="text-sm opacity-75">Track progress from tool-assisted to AI-embedded workflows</p>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                  Or continue with
+                </span>
               </div>
             </div>
-            
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-primary-foreground/10 rounded-lg">
-                <Shield className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Risk & Compliance</h3>
-                <p className="text-sm opacity-75">Built-in guardrails for healthcare and sensitive data</p>
-              </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" type="button" disabled className="w-full">
+                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                  <path
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    fill="#4285F4"
+                  />
+                  <path
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    fill="#34A853"
+                  />
+                  <path
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    fill="#FBBC05"
+                  />
+                  <path
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    fill="#EA4335"
+                  />
+                </svg>
+                Google
+              </Button>
+              <Button variant="outline" type="button" disabled className="w-full">
+                <svg className="mr-2 h-4 w-4" viewBox="0 0 23 23">
+                  <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
+                  <path fill="#f35325" d="M1 1h10v10H1z"/>
+                  <path fill="#81bc06" d="M12 1h10v10H12z"/>
+                  <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+                  <path fill="#ffba08" d="M12 12h10v10H12z"/>
+                </svg>
+                Microsoft
+              </Button>
             </div>
-            
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-primary-foreground/10 rounded-lg">
-                <BarChart3 className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-semibold">ROI Tracking</h3>
-                <p className="text-sm opacity-75">Quantify time saved and monthly value for each use case</p>
-              </div>
-            </div>
-          </div>
+          </CardContent>
+        </Card>
+
+        <div className="text-center space-y-1">
+          <p className="text-sm text-muted-foreground">
+            <span className="text-foreground font-medium">Solvity.ai</span> is an exclusive platform for{" "}
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Galaxis Consulting</span> clients.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Need access? Contact your account manager.
+          </p>
         </div>
       </div>
     </div>

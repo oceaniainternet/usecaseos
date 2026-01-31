@@ -161,7 +161,7 @@ export default function AcceptInvitePage() {
             <Building className="h-6 w-6" />
             <span className="font-semibold">{invitation?.clientName}</span>
           </div>
-          <CardTitle>Welcome to UseCaseOS</CardTitle>
+          <CardTitle>Welcome to Solvity</CardTitle>
           <CardDescription>
             You've been invited to join as a client. Create your account to view your use cases.
           </CardDescription>

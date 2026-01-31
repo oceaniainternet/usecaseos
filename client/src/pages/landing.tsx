@@ -4,7 +4,7 @@ import {
   LayoutDashboard, 
   Shield, 
   BarChart3, 
-  Workflow,
+  Squirrel,
   ArrowRight,
   CheckCircle2
 } from "lucide-react";
@@ -16,10 +16,10 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
-              <Workflow className="h-5 w-5 text-primary-foreground" />
+            <div className="h-8 w-8 rounded-md bg-emerald-500 flex items-center justify-center">
+              <Squirrel className="h-5 w-5 text-white" />
             </div>
-            <span className="font-semibold text-lg">UseCaseOS</span>
+            <span className="font-semibold text-lg">Solvity</span>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -44,7 +44,7 @@ export default function LandingPage() {
                 <span className="text-primary"> measurable ROI</span>
               </h1>
               <p className="text-lg text-muted-foreground max-w-lg">
-                Create, manage, and track Use Case Story Cards for your clients. 
+                Capture, collaborate, and prioritize AI use cases for your organization. 
                 Visualize automation levels, assess risks, and demonstrate real value.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
@@ -144,7 +144,7 @@ export default function LandingPage() {
       <section className="py-12 px-4 bg-muted/50">
         <div className="container mx-auto max-w-4xl text-center">
           <p className="text-sm text-muted-foreground">
-            <strong>Important:</strong> UseCaseOS is a workflow management tool and does not provide medical advice, 
+            <strong>Important:</strong> Solvity is a workflow management tool and does not provide medical advice, 
             diagnosis, or treatment. For healthcare verticals, all use cases include appropriate guardrails 
             and human-in-the-loop requirements. This system does not replace clinical care or professional medical judgment.
           </p>
@@ -155,13 +155,13 @@ export default function LandingPage() {
       <footer className="py-8 px-4 border-t">
         <div className="container mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-md bg-primary flex items-center justify-center">
-              <Workflow className="h-4 w-4 text-primary-foreground" />
+            <div className="h-6 w-6 rounded-md bg-emerald-500 flex items-center justify-center">
+              <Squirrel className="h-4 w-4 text-white" />
             </div>
-            <span className="font-medium">UseCaseOS</span>
+            <span className="font-medium">Solvity</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} UseCaseOS. All rights reserved.
+            &copy; {new Date().getFullYear()} Solvity. All rights reserved.
           </p>
         </div>
       </footer>

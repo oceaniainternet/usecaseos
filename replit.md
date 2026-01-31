@@ -1,7 +1,7 @@
-# UseCaseOS
+# Solvity
 
 ## Overview
-UseCaseOS is a SaaS web application that helps consultants create and manage "Use Case Story Cards" for their clients. The app tracks automation levels, risk assessments, ROI metrics, and workflow transformations across different industry verticals (e.g., Podiatry, Healthcare).
+Solvity.ai is an invite-only SaaS web application exclusively for Galaxis Consulting clients. The platform helps consultants create and manage "Use Case Story Cards" for their clients, tracking automation levels, risk assessments, ROI metrics, and workflow transformations across different industry verticals (e.g., Podiatry, Healthcare).
 
 ## Tech Stack
 - **Frontend**: React 18 + TypeScript + Vite
