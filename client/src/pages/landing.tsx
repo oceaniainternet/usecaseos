@@ -22,7 +22,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Button asChild data-testid="button-login">
-              <a href="/auth">Sign In</a>
+              <a href="/">Sign In</a>
             </Button>
           </div>
         </div>
@@ -47,7 +47,7 @@ export default function LandingPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button size="lg" asChild data-testid="button-get-started">
-                  <a href="/auth">
+                  <a href="/">
                     Get Started
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </a>

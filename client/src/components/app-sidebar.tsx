@@ -71,7 +71,7 @@ export function AppSidebar() {
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
-        setLocation("/auth");
+        setLocation("/");
       }
     });
   };

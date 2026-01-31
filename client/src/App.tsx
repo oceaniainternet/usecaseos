@@ -121,11 +121,11 @@ function Router() {
   if (!user) {
     return (
       <Switch>
-        <Route path="/" component={LandingPage} />
-        <Route path="/auth" component={AuthPage} />
+        <Route path="/" component={AuthPage} />
+        <Route path="/business-ai" component={LandingPage} />
         <Route path="/client-login" component={ClientLoginPage} />
         <Route path="/accept-invite" component={AcceptInvitePage} />
-        <Route component={LandingPage} />
+        <Route component={AuthPage} />
       </Switch>
     );
   }

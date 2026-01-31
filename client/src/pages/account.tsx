@@ -37,7 +37,7 @@ export default function AccountPage() {
     },
     onSuccess: () => {
       queryClient.clear();
-      setLocation("/auth");
+      setLocation("/");
     },
     onError: () => {
       toast({

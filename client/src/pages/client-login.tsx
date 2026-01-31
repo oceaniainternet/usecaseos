@@ -129,7 +129,7 @@ export default function ClientLoginPage() {
               </Form>
               
               <div className="mt-4 text-center text-sm text-muted-foreground">
-                <Link href="/auth" className="hover:underline">
+                <Link href="/" className="hover:underline">
                   Consultant Login
                 </Link>
               </div>
