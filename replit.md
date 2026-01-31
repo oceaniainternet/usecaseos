@@ -45,7 +45,8 @@ Solvity.ai is an invite-only SaaS web application exclusively for Galaxis Consul
 - dataFlow: LocalOnly, VendorTools, CloudLLM
 - humanInLoop: Required, Optional, None
 - storyToday, storyFuture (workflow descriptions)
-- personaStory (auto-generated narrative with real-world personas)
+- personaStory (narrative with real-world personas)
+- personaStoryIsManual: boolean (true = manually entered, false = AI-generated)
 - controls (guardrails array)
 - tools (tools used array)
 - ROI metrics: baselineMinutesPerRun, frequencyPerWeek, roiTimeSavedMinutesPerWeek, roiDollarsPerMonth
@@ -72,6 +73,7 @@ Solvity.ai is an invite-only SaaS web application exclusively for Galaxis Consul
 - `PATCH /api/use-case-notes/:noteId` - Update a note
 - `DELETE /api/use-case-notes/:noteId` - Delete a note
 - `POST /api/story-generate` - Generate story content (template-based)
+- `POST /api/admin/seed-marketplace` - Populate marketplace templates (consultant-only access)
 
 ## Authentication
 Uses username/password authentication with Passport.js local strategy. Routes:
