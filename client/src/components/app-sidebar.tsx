@@ -25,6 +25,7 @@ import {
   ChevronUp,
   Shield,
   Store,
+  User,
 } from "lucide-react";
 import solvityLogo from "@assets/solvityai_logo_1769819575419.png";
 
@@ -154,6 +155,16 @@ export function AppSidebar() {
                 side="top"
                 className="w-[--radix-popper-anchor-width]"
               >
+                <DropdownMenuItem 
+                  asChild
+                  className="cursor-pointer" 
+                  data-testid="button-sidebar-account"
+                >
+                  <Link href="/account">
+                    <User className="h-4 w-4 mr-2" />
+                    Account
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={handleLogout}
                   className="cursor-pointer" 

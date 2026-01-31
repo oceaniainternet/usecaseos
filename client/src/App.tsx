@@ -23,6 +23,7 @@ import ClientPortalPage from "@/pages/client-portal";
 import ClientUseCaseDetailPage from "@/pages/client-use-case-detail";
 import ClientAccountPage from "@/pages/client-account";
 import ClientMarketplacePage from "@/pages/client-marketplace";
+import AccountPage from "@/pages/account";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const style = {
@@ -81,6 +82,7 @@ function AuthenticatedRoutes() {
         <Route path="/marketplace" component={MarketplacePage} />
         <Route path="/use-cases/:id" component={UseCaseDetailPage} />
         <Route path="/admin" component={AdminPage} />
+        <Route path="/account" component={AccountPage} />
         <Route component={NotFound} />
       </Switch>
     </AuthenticatedLayout>
