@@ -320,9 +320,11 @@ export default function AdminPage() {
                 className="max-w-2xl max-h-[90vh] overflow-y-auto"
                 onPointerDownOutside={(e) => e.preventDefault()}
                 onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
               >
                 <DialogHeader>
                   <DialogTitle>Add New Use Case</DialogTitle>
+                  <p className="text-sm text-muted-foreground">Fill in the details to create a new use case</p>
                 </DialogHeader>
                 <UseCaseForm clients={clients} onSuccess={() => setUseCaseDialogOpen(false)} />
               </DialogContent>
@@ -406,9 +408,11 @@ export default function AdminPage() {
                       className="max-w-2xl max-h-[90vh] overflow-y-auto"
                       onPointerDownOutside={(e) => e.preventDefault()}
                       onInteractOutside={(e) => e.preventDefault()}
+                      onEscapeKeyDown={(e) => e.preventDefault()}
                     >
                       <DialogHeader>
                         <DialogTitle>Edit Use Case</DialogTitle>
+                        <p className="text-sm text-muted-foreground">Update the use case details</p>
                       </DialogHeader>
                       {selectedUseCase && (
                         <EditUseCaseForm 
