@@ -20,6 +20,7 @@ import MarketplacePage from "@/pages/marketplace";
 import ClientLoginPage from "@/pages/client-login";
 import AcceptInvitePage from "@/pages/accept-invite";
 import ResetPasswordPage from "@/pages/reset-password";
+import AdminSetupPage from "@/pages/admin-setup";
 import ClientPortalPage from "@/pages/client-portal";
 import ClientUseCaseDetailPage from "@/pages/client-use-case-detail";
 import ClientAccountPage from "@/pages/client-account";
@@ -127,6 +128,7 @@ function Router() {
         <Route path="/client-login" component={ClientLoginPage} />
         <Route path="/accept-invite" component={AcceptInvitePage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
+        <Route path="/admin-setup" component={AdminSetupPage} />
         <Route component={AuthPage} />
       </Switch>
     );
