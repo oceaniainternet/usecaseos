@@ -375,7 +375,12 @@ export default function AdminPage() {
                   <DialogTitle>Add New Use Case</DialogTitle>
                   <DialogDescription>Fill in the details to create a new use case</DialogDescription>
                 </DialogHeader>
-                <UseCaseForm key={useCaseFormKey} clients={clients} onSuccess={() => setUseCaseDialogOpen(false)} />
+                <UseCaseForm key={useCaseFormKey} clients={clients} onSuccess={() => {
+                  sessionStorage.removeItem('useCaseFormData');
+                  sessionStorage.removeItem('useCaseFormGenerating');
+                  setUseCaseFormKey(k => k + 1);
+                  setUseCaseDialogOpen(false);
+                }} />
               </DialogContent>
             </Dialog>
           </div>
