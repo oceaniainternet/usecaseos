@@ -144,6 +144,19 @@ export const marketplaceRatings = pgTable("marketplace_ratings", {
   index("marketplace_ratings_user_idx").on(table.userId),
 ]);
 
+// Use case notes for client-admin collaboration
+export const useCaseNotes = pgTable("use_case_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  useCaseId: varchar("use_case_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("use_case_notes_use_case_idx").on(table.useCaseId),
+  index("use_case_notes_user_idx").on(table.userId),
+]);
+
 // Client favorites for marketplace use cases (roadmap for admins)
 export const clientFavorites = pgTable("client_favorites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -191,6 +204,17 @@ export const clientFavoritesRelations = relations(clientFavorites, ({ one }) => 
   client: one(clients, {
     fields: [clientFavorites.clientId],
     references: [clients.id],
+  }),
+}));
+
+export const useCaseNotesRelations = relations(useCaseNotes, ({ one }) => ({
+  useCase: one(useCases, {
+    fields: [useCaseNotes.useCaseId],
+    references: [useCases.id],
+  }),
+  user: one(users, {
+    fields: [useCaseNotes.userId],
+    references: [users.id],
   }),
 }));
 
@@ -247,6 +271,12 @@ export const insertClientFavoriteSchema = createInsertSchema(clientFavorites).om
   createdAt: true,
 });
 
+export const insertUseCaseNoteSchema = createInsertSchema(useCaseNotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertClientInvitationSchema = createInsertSchema(clientInvitations).omit({
   id: true,
   createdAt: true,
@@ -296,6 +326,19 @@ export type InsertMarketplaceRating = z.infer<typeof insertMarketplaceRatingSche
 
 export type ClientFavorite = typeof clientFavorites.$inferSelect;
 export type InsertClientFavorite = z.infer<typeof insertClientFavoriteSchema>;
+
+export type UseCaseNote = typeof useCaseNotes.$inferSelect;
+export type InsertUseCaseNote = z.infer<typeof insertUseCaseNoteSchema>;
+
+export type UseCaseNoteWithUser = UseCaseNote & {
+  user: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+    profileImageUrl: string | null;
+  };
+};
 
 export type ClientInvitation = typeof clientInvitations.$inferSelect;
 export type InsertClientInvitation = z.infer<typeof insertClientInvitationSchema>;

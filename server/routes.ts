@@ -318,6 +318,67 @@ export async function registerRoutes(
     }
   });
 
+  // Use Case Notes - client-admin collaboration
+  app.get("/api/use-cases/:id/notes", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const notes = await storage.getUseCaseNotes(id);
+      res.json(notes);
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+      res.status(500).json({ message: "Failed to fetch notes" });
+    }
+  });
+
+  app.post("/api/use-cases/:id/notes", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { content } = req.body;
+      const userId = req.user!.id;
+      
+      if (!content || typeof content !== 'string' || content.trim().length === 0) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+      
+      const note = await storage.createUseCaseNote(id, userId, content.trim());
+      res.status(201).json(note);
+    } catch (error) {
+      console.error("Error creating note:", error);
+      res.status(500).json({ message: "Failed to create note" });
+    }
+  });
+
+  app.patch("/api/use-case-notes/:noteId", isAuthenticated, async (req, res) => {
+    try {
+      const { noteId } = req.params;
+      const { content } = req.body;
+      
+      if (!content || typeof content !== 'string' || content.trim().length === 0) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+      
+      const note = await storage.updateUseCaseNote(noteId, content.trim());
+      if (!note) {
+        return res.status(404).json({ message: "Note not found" });
+      }
+      res.json(note);
+    } catch (error) {
+      console.error("Error updating note:", error);
+      res.status(500).json({ message: "Failed to update note" });
+    }
+  });
+
+  app.delete("/api/use-case-notes/:noteId", isAuthenticated, async (req, res) => {
+    try {
+      const { noteId } = req.params;
+      await storage.deleteUseCaseNote(noteId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      res.status(500).json({ message: "Failed to delete note" });
+    }
+  });
+
   // Story Generator - Claude AI powered
   app.post("/api/story-generate", isAuthenticated, async (req, res) => {
     try {

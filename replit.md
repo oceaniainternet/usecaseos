@@ -51,6 +51,10 @@ Solvity.ai is an invite-only SaaS web application exclusively for Galaxis Consul
 - ROI metrics: baselineMinutesPerRun, frequencyPerWeek, roiTimeSavedMinutesPerWeek, roiDollarsPerMonth
 - priorityOrder (for drag-and-drop ordering)
 
+### Use Case Notes
+- id, useCaseId, userId, content, createdAt, updatedAt
+- Enables collaboration between clients and consultants on each use case
+
 ## API Endpoints
 - `GET /api/clients` - List all clients
 - `POST /api/clients` - Create a client
@@ -63,6 +67,10 @@ Solvity.ai is an invite-only SaaS web application exclusively for Galaxis Consul
 - `PATCH /api/use-cases/:id` - Update use case
 - `DELETE /api/use-cases/:id` - Delete use case
 - `POST /api/use-cases/reorder` - Update priority order
+- `GET /api/use-cases/:id/notes` - Get notes for a use case
+- `POST /api/use-cases/:id/notes` - Create a note (body: {content})
+- `PATCH /api/use-case-notes/:noteId` - Update a note
+- `DELETE /api/use-case-notes/:noteId` - Delete a note
 - `POST /api/story-generate` - Generate story content (template-based)
 
 ## Authentication
@@ -100,11 +108,12 @@ Goals help categorize what each use case aims to achieve:
 - Leads, Fewer Phone Calls, Education, Cost Savings, Customer Retention, Efficiency, Compliance, Revenue Growth, Other
 
 ### Use Case Detail (/use-cases/:id)
-Four tabs:
+Five tabs:
 1. **Overview**: Details, level, status, department, tools + **Value Wheel**
 2. **Story Mode**: Persona story narrative + Current workflow vs Future automated workflow
 3. **Risk & Trust**: Risk rating, PII flag, data flow, human-in-loop, controls
 4. **ROI**: Baseline time, time saved, estimated monthly value
+5. **Notes**: Collaboration notes between clients and consultants (add, view, delete notes)
 
 ### Value Wheel (Interactive Business Value Visualization)
 Located on the Overview tab, the Value Wheel shows how the use case drives business outcomes:

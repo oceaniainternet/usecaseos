@@ -1,11 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { type UseCase, type Client, levelLabels } from "@shared/schema";
+import { type UseCase, type Client, type UseCaseNoteWithUser, levelLabels } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   ArrowLeft, 
   Clock, 
@@ -18,10 +20,18 @@ import {
   Wrench,
   CheckCircle2,
   Info,
-  TrendingUp
+  TrendingUp,
+  MessageSquare,
+  Send,
+  Trash2,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ValueWheel } from "@/components/ValueWheel";
+import { useAuth } from "@/hooks/use-auth";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 const statusColors: Record<string, string> = {
   Proposed: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -151,6 +161,13 @@ export default function UseCaseDetailPage() {
             data-testid="tab-roi"
           >
             ROI
+          </TabsTrigger>
+          <TabsTrigger 
+            value="notes" 
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+            data-testid="tab-notes"
+          >
+            Notes
           </TabsTrigger>
         </TabsList>
 
@@ -435,7 +452,187 @@ export default function UseCaseDetailPage() {
             </Card>
           </div>
         </TabsContent>
+
+        {/* Notes Tab */}
+        <TabsContent value="notes" className="space-y-6 mt-6">
+          <NotesTab useCaseId={useCase.id} />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function NotesTab({ useCaseId }: { useCaseId: string }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [newNote, setNewNote] = useState("");
+
+  const { data: notes = [], isLoading } = useQuery<UseCaseNoteWithUser[]>({
+    queryKey: ["/api/use-cases", useCaseId, "notes"],
+    queryFn: async () => {
+      const response = await fetch(`/api/use-cases/${useCaseId}/notes`);
+      if (!response.ok) throw new Error("Failed to fetch notes");
+      return response.json();
+    },
+  });
+
+  const createNoteMutation = useMutation({
+    mutationFn: async (content: string) => {
+      return apiRequest("POST", `/api/use-cases/${useCaseId}/notes`, { content });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/use-cases", useCaseId, "notes"] });
+      setNewNote("");
+      toast({ title: "Note added" });
+    },
+    onError: () => {
+      toast({ title: "Failed to add note", variant: "destructive" });
+    },
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: async (noteId: string) => {
+      return apiRequest("DELETE", `/api/use-case-notes/${noteId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/use-cases", useCaseId, "notes"] });
+      toast({ title: "Note deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete note", variant: "destructive" });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newNote.trim()) {
+      createNoteMutation.mutate(newNote.trim());
+    }
+  };
+
+  const formatDate = (date: Date | string) => {
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  const getInitials = (firstName: string | null, lastName: string | null, email: string) => {
+    if (firstName && lastName) {
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
+    }
+    return email[0].toUpperCase();
+  };
+
+  const getUserDisplayName = (noteUser: UseCaseNoteWithUser["user"]) => {
+    if (noteUser.firstName && noteUser.lastName) {
+      return `${noteUser.firstName} ${noteUser.lastName}`;
+    }
+    return noteUser.email;
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            Collaboration Notes
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Share notes and updates between clients and consultants. All parties can see and add notes here.
+          </p>
+          
+          {/* New note form */}
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <Textarea
+              placeholder="Add a note..."
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              className="min-h-[100px] resize-none"
+              data-testid="input-note-content"
+            />
+            <div className="flex justify-end">
+              <Button 
+                type="submit" 
+                disabled={!newNote.trim() || createNoteMutation.isPending}
+                data-testid="button-add-note"
+              >
+                {createNoteMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                Add Note
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Notes list */}
+      <div className="space-y-4">
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+        ) : notes.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-muted-foreground">No notes yet. Be the first to add one!</p>
+            </CardContent>
+          </Card>
+        ) : (
+          notes.map((note) => (
+            <Card key={note.id} data-testid={`note-card-${note.id}`}>
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={note.user.profileImageUrl || undefined} />
+                    <AvatarFallback className="text-xs">
+                      {getInitials(note.user.firstName, note.user.lastName, note.user.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm" data-testid="text-note-author">
+                          {getUserDisplayName(note.user)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(note.createdAt)}
+                        </span>
+                      </div>
+                      {user?.id === note.userId && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => deleteNoteMutation.mutate(note.id)}
+                          disabled={deleteNoteMutation.isPending}
+                          data-testid={`button-delete-note-${note.id}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap" data-testid="text-note-content">
+                      {note.content}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
     </div>
   );
 }

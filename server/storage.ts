@@ -7,6 +7,7 @@ import {
   marketplaceRatings,
   clientInvitations,
   clientFavorites,
+  useCaseNotes,
   type Client, 
   type InsertClient, 
   type UseCase, 
@@ -23,7 +24,10 @@ import {
   type ClientInvitation,
   type InsertClientInvitation,
   type ClientFavorite,
-  type InsertClientFavorite
+  type InsertClientFavorite,
+  type UseCaseNote,
+  type InsertUseCaseNote,
+  type UseCaseNoteWithUser
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, asc, desc, and, sql, avg, count } from "drizzle-orm";
@@ -86,6 +90,12 @@ export interface IStorage {
   getClientFavorites(userId: string): Promise<ClientFavorite[]>;
   getClientFavoritesByClient(clientId: string): Promise<(ClientFavorite & { marketplaceUseCase: MarketplaceUseCase; user: User })[]>;
   isClientFavorite(marketplaceUseCaseId: string, userId: string): Promise<boolean>;
+
+  // Use Case Notes (client-admin collaboration)
+  getUseCaseNotes(useCaseId: string): Promise<UseCaseNoteWithUser[]>;
+  createUseCaseNote(useCaseId: string, userId: string, content: string): Promise<UseCaseNote>;
+  updateUseCaseNote(noteId: string, content: string): Promise<UseCaseNote | undefined>;
+  deleteUseCaseNote(noteId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -458,6 +468,61 @@ export class DatabaseStorage implements IStorage {
         eq(clientFavorites.userId, userId)
       ));
     return !!favorite;
+  }
+
+  // Use Case Notes
+  async getUseCaseNotes(useCaseId: string): Promise<UseCaseNoteWithUser[]> {
+    const notes = await db.select({
+      id: useCaseNotes.id,
+      useCaseId: useCaseNotes.useCaseId,
+      userId: useCaseNotes.userId,
+      content: useCaseNotes.content,
+      createdAt: useCaseNotes.createdAt,
+      updatedAt: useCaseNotes.updatedAt,
+      user: {
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        profileImageUrl: users.profileImageUrl,
+      }
+    })
+      .from(useCaseNotes)
+      .leftJoin(users, eq(useCaseNotes.userId, users.id))
+      .where(eq(useCaseNotes.useCaseId, useCaseId))
+      .orderBy(desc(useCaseNotes.createdAt));
+    
+    return notes.map(note => ({
+      ...note,
+      user: note.user || {
+        id: note.userId,
+        firstName: null,
+        lastName: null,
+        email: 'Unknown',
+        profileImageUrl: null,
+      }
+    }));
+  }
+
+  async createUseCaseNote(useCaseId: string, userId: string, content: string): Promise<UseCaseNote> {
+    const [note] = await db.insert(useCaseNotes)
+      .values({ useCaseId, userId, content })
+      .returning();
+    return note;
+  }
+
+  async updateUseCaseNote(noteId: string, content: string): Promise<UseCaseNote | undefined> {
+    const [note] = await db.update(useCaseNotes)
+      .set({ content, updatedAt: new Date() })
+      .where(eq(useCaseNotes.id, noteId))
+      .returning();
+    return note;
+  }
+
+  async deleteUseCaseNote(noteId: string): Promise<boolean> {
+    const result = await db.delete(useCaseNotes)
+      .where(eq(useCaseNotes.id, noteId));
+    return true;
   }
 }
 
