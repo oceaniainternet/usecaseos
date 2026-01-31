@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { type UseCase } from "@shared/schema";
+import { type UseCase, type Client } from "@shared/schema";
 import { UseCaseCard } from "@/components/use-case-card";
 import { DashboardFiltersBar, type DashboardFilters } from "@/components/dashboard-filters";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,19 +16,28 @@ import {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const isAdmin = !!(user && !user.isClientUser);
+  
   const [filters, setFilters] = useState<DashboardFilters>({
     level: "All",
     status: "All",
     riskRating: "All",
     piiOnly: false,
+    clientId: "All",
   });
 
   const { data: useCases = [], isLoading } = useQuery<UseCase[]>({
     queryKey: ["/api/use-cases"],
   });
 
+  const { data: clients = [] } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+    enabled: isAdmin,
+  });
+
   // Apply filters
   const filteredUseCases = useCases.filter((uc) => {
+    if (filters.clientId !== "All" && uc.clientId !== filters.clientId) return false;
     if (filters.level !== "All" && uc.level !== parseInt(filters.level)) return false;
     if (filters.status !== "All" && uc.status !== filters.status) return false;
     if (filters.riskRating !== "All" && uc.riskRating !== filters.riskRating) return false;
@@ -85,7 +94,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Filters */}
-      <DashboardFiltersBar filters={filters} onFiltersChange={setFilters} />
+      <DashboardFiltersBar 
+        filters={filters} 
+        onFiltersChange={setFilters} 
+        clients={clients}
+        showClientFilter={isAdmin}
+      />
 
       {/* Use Cases Grid */}
       {isLoading ? (

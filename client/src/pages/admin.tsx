@@ -130,6 +130,7 @@ export default function AdminPage() {
   });
 
   const [selectedClientForRoadmap, setSelectedClientForRoadmap] = useState<string>("all");
+  const [selectedClientForUseCases, setSelectedClientForUseCases] = useState<string>("all");
 
   const deleteUseCaseMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -250,8 +251,24 @@ export default function AdminPage() {
 
         {/* Use Cases Tab */}
         <TabsContent value="usecases" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-medium">Use Cases</h2>
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <h2 className="text-lg font-medium">Use Cases</h2>
+              <Select
+                value={selectedClientForUseCases}
+                onValueChange={setSelectedClientForUseCases}
+              >
+                <SelectTrigger className="w-48" data-testid="select-usecase-client-filter">
+                  <SelectValue placeholder="Filter by client" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Clients</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Dialog open={useCaseDialogOpen} onOpenChange={setUseCaseDialogOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-add-usecase">
@@ -294,7 +311,9 @@ export default function AdminPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {useCases.map((uc) => {
+                      {useCases
+                        .filter((uc) => selectedClientForUseCases === "all" || uc.clientId === selectedClientForUseCases)
+                        .map((uc) => {
                         const client = clients.find((c) => c.id === uc.clientId);
                         return (
                           <TableRow key={uc.id} data-testid={`row-usecase-${uc.id}`}>
