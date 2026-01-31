@@ -432,11 +432,16 @@ Please generate the following in JSON format:
 
 Make the story authentic, warm, and compelling - suitable for presenting to clients. Use natural healthcare language and real-world scenarios.`;
 
+      console.log("Starting Claude story generation for:", parsed.data.taskSummary);
+      const startTime = Date.now();
+      
       const message = await anthropic.messages.create({
         model: "claude-sonnet-4-5",
-        max_tokens: 2048,
+        max_tokens: 4096,
         messages: [{ role: "user", content: prompt }],
       });
+      
+      console.log(`Claude story generation completed in ${(Date.now() - startTime) / 1000}s`);
 
       const content = message.content[0];
       if (content.type !== "text") {
