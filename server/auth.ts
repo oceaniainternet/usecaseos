@@ -151,11 +151,11 @@ export function setupAuth(app: Express) {
       // Create reset token
       const resetToken = await storage.createPasswordResetToken(user.id);
       
-      // Build reset URL
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+      // Build reset URL - use solvity.ai in production
+      const baseUrl = process.env.NODE_ENV === 'production'
+        ? 'https://solvity.ai'
+        : process.env.REPLIT_DEV_DOMAIN 
         ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : process.env.REPLIT_DOMAINS
-        ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
         : 'http://localhost:5000';
       const resetLink = `${baseUrl}/reset-password?token=${resetToken.token}`;
 
