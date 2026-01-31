@@ -131,6 +131,19 @@ export default function AdminPage() {
 
   const [selectedClientForRoadmap, setSelectedClientForRoadmap] = useState<string>("all");
 
+  const deleteUseCaseMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/use-cases/${id}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/use-cases"] });
+      toast({ title: "Use case deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete use case", variant: "destructive" });
+    },
+  });
+
   const { data: clientFavorites = [], isLoading: favoritesLoading } = useQuery<ClientFavoriteWithDetails[]>({
     queryKey: ["/api/client-favorites/by-client", selectedClientForRoadmap],
     queryFn: async () => {
@@ -291,17 +304,32 @@ export default function AdminPage() {
                             <TableCell>{uc.status}</TableCell>
                             <TableCell>{uc.riskRating}</TableCell>
                             <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setSelectedUseCase(uc);
-                                  setEditUseCaseDialogOpen(true);
-                                }}
-                                data-testid={`button-edit-usecase-${uc.id}`}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setSelectedUseCase(uc);
+                                    setEditUseCaseDialogOpen(true);
+                                  }}
+                                  data-testid={`button-edit-usecase-${uc.id}`}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    if (confirm(`Are you sure you want to delete "${uc.title}"?`)) {
+                                      deleteUseCaseMutation.mutate(uc.id);
+                                    }
+                                  }}
+                                  disabled={deleteUseCaseMutation.isPending}
+                                  data-testid={`button-delete-usecase-${uc.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
