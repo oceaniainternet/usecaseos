@@ -99,6 +99,7 @@ export const useCases = pgTable("use_cases", {
   storyTodayIsManual: boolean("story_today_is_manual").notNull().default(false),
   storyToday: text("story_today"),
   storyFuture: text("story_future"),
+  personaStoryIsManual: boolean("persona_story_is_manual").notNull().default(false),
   personaStory: text("persona_story"),
   controls: jsonb("controls").$type<string[]>().default([]),
   tools: jsonb("tools").$type<string[]>().default([]),

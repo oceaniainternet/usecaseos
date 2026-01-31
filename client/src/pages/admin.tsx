@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Building2, FileText, Sparkles, Loader2, Pencil, ChevronDown, Mail, Trash2, Copy, CheckCircle, XCircle, Clock, Heart, User } from "lucide-react";
+import { Plus, Building2, FileText, Sparkles, Loader2, Pencil, ChevronDown, Mail, Trash2, Copy, CheckCircle, XCircle, Clock, Heart, User, Database } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { MarketplaceUseCase, User as UserType } from "@shared/schema";
 
@@ -80,6 +80,7 @@ const useCaseFormSchema = z.object({
   storyTodayIsManual: z.boolean().default(false),
   storyToday: z.string().optional(),
   storyFuture: z.string().optional(),
+  personaStoryIsManual: z.boolean().default(false),
   personaStory: z.string().optional(),
   controls: z.string().optional(),
   tools: z.string().optional(),
@@ -145,6 +146,30 @@ export default function AdminPage() {
     },
   });
 
+  const seedMarketplaceMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/seed-marketplace", {});
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.skipped) {
+        toast({ 
+          title: "Marketplace already populated", 
+          description: `Found ${data.count} existing templates` 
+        });
+      } else {
+        toast({ 
+          title: "Marketplace seeded", 
+          description: `Added ${data.count} templates` 
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/marketplace"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to seed marketplace", variant: "destructive" });
+    },
+  });
+
   const { data: clientFavorites = [], isLoading: favoritesLoading } = useQuery<ClientFavoriteWithDetails[]>({
     queryKey: ["/api/client-favorites/by-client", selectedClientForRoadmap],
     queryFn: async () => {
@@ -168,11 +193,26 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-admin-title">Admin Panel</h1>
-        <p className="text-muted-foreground">
-          Manage clients and use cases
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-admin-title">Admin Panel</h1>
+          <p className="text-muted-foreground">
+            Manage clients and use cases
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => seedMarketplaceMutation.mutate()}
+          disabled={seedMarketplaceMutation.isPending}
+          data-testid="button-seed-marketplace"
+        >
+          {seedMarketplaceMutation.isPending ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Database className="h-4 w-4 mr-2" />
+          )}
+          Seed Marketplace
+        </Button>
       </div>
 
       <Tabs defaultValue="clients" className="space-y-6">
@@ -802,6 +842,7 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
       storyTodayIsManual: false,
       storyToday: "",
       storyFuture: "",
+      personaStoryIsManual: false,
       personaStory: "",
       controls: "",
       tools: "",
@@ -1230,20 +1271,50 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
 
         <FormField
           control={form.control}
+          name="personaStoryIsManual"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel>Manual Persona Story Entry</FormLabel>
+                <p className="text-xs text-muted-foreground">
+                  Check to write your own persona story instead of AI generation
+                </p>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  data-testid="switch-persona-story-manual"
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="personaStory"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Persona Story (auto-generated narrative)</FormLabel>
+              <FormLabel>
+                Persona Story {form.watch("personaStoryIsManual") ? "(manual entry)" : "(auto-generated narrative)"}
+              </FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder="Click 'Generate Story' to create a persona-based narrative..."
-                  className="min-h-32 bg-muted/50"
-                  readOnly
+                  placeholder={form.watch("personaStoryIsManual") 
+                    ? "Write your persona-based narrative here..." 
+                    : "Click 'Generate Story' to create a persona-based narrative..."}
+                  className={`min-h-32 ${form.watch("personaStoryIsManual") ? "" : "bg-muted/50"}`}
+                  readOnly={!form.watch("personaStoryIsManual")}
                   {...field}
                   data-testid="textarea-persona-story"
                 />
               </FormControl>
-              <p className="text-xs text-muted-foreground">This story uses real-world personas and industry-specific language for client presentations.</p>
+              <p className="text-xs text-muted-foreground">
+                {form.watch("personaStoryIsManual") 
+                  ? "Write your own story using real-world personas and industry-specific language."
+                  : "This story uses real-world personas and industry-specific language for client presentations."}
+              </p>
               <FormMessage />
             </FormItem>
           )}
@@ -1366,6 +1437,7 @@ function EditUseCaseForm({
       storyTodayIsManual: useCase.storyTodayIsManual || false,
       storyToday: useCase.storyToday || "",
       storyFuture: useCase.storyFuture || "",
+      personaStoryIsManual: useCase.personaStoryIsManual || false,
       personaStory: useCase.personaStory || "",
       controls: (useCase.controls as string[])?.join("\n") || "",
       tools: (useCase.tools as string[])?.join(", ") || "",
@@ -1807,20 +1879,50 @@ function EditUseCaseForm({
 
         <FormField
           control={form.control}
+          name="personaStoryIsManual"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel>Manual Persona Story Entry</FormLabel>
+                <p className="text-xs text-muted-foreground">
+                  Check to write your own persona story instead of AI generation
+                </p>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  data-testid="switch-edit-persona-story-manual"
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="personaStory"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Persona Story (auto-generated narrative)</FormLabel>
+              <FormLabel>
+                Persona Story {form.watch("personaStoryIsManual") ? "(manual entry)" : "(auto-generated narrative)"}
+              </FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder="Click 'Generate Story' to create a persona-based narrative..."
-                  className="min-h-32 bg-muted/50"
-                  readOnly
+                  placeholder={form.watch("personaStoryIsManual") 
+                    ? "Write your persona-based narrative here..." 
+                    : "Click 'Generate Story' to create a persona-based narrative..."}
+                  className={`min-h-32 ${form.watch("personaStoryIsManual") ? "" : "bg-muted/50"}`}
+                  readOnly={!form.watch("personaStoryIsManual")}
                   {...field}
                   data-testid="textarea-edit-persona-story"
                 />
               </FormControl>
-              <p className="text-xs text-muted-foreground">This story uses real-world personas and industry-specific language for client presentations.</p>
+              <p className="text-xs text-muted-foreground">
+                {form.watch("personaStoryIsManual") 
+                  ? "Write your own story using real-world personas and industry-specific language."
+                  : "This story uses real-world personas and industry-specific language for client presentations."}
+              </p>
               <FormMessage />
             </FormItem>
           )}

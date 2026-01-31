@@ -979,5 +979,217 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
     }
   });
 
+  // Admin endpoint to seed marketplace templates (for production environment)
+  app.post("/api/admin/seed-marketplace", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      // Only allow admin/consultant users to seed marketplace
+      // Admin/consultants have NO client associations - they manage the system
+      // Any user with a client association (CLIENT or VIEWER role) is a client user
+      const userClients = await storage.getUserClients(user.id);
+      if (userClients.length > 0) {
+        return res.status(403).json({ message: "Only consultants can seed marketplace data" });
+      }
+
+      // Check if marketplace already has templates
+      const existingTemplates = await storage.getMarketplaceUseCases();
+      if (existingTemplates.length > 0) {
+        return res.json({ 
+          message: "Marketplace already has templates",
+          count: existingTemplates.length,
+          skipped: true
+        });
+      }
+
+      // Marketplace templates to seed
+      const marketplaceTemplates = [
+        {
+          title: "Automated Appointment Reminders",
+          description: "Send automated SMS/email reminders to patients 24-48 hours before appointments to reduce no-shows.",
+          industryVertical: "Healthcare",
+          scope: "Communications",
+          department: "Admin",
+          level: 2,
+          goals: ["Efficiency", "Customer Retention", "Fewer Phone Calls"],
+          riskRating: "Medium" as const,
+          piiFlag: true,
+          dataFlow: "VendorTools" as const,
+          humanInLoop: "Optional" as const,
+          storyToday: "Staff manually calls each patient the day before their appointment, spending hours on the phone leaving voicemails.",
+          storyFuture: "1. System automatically pulls next-day appointments\n2. Personalized reminder messages are generated\n3. SMS/Email sent to patients automatically\n4. Confirmations and cancellations logged\n5. Staff notified of any issues",
+          controls: ["HIPAA-compliant messaging", "Opt-out option included", "No sensitive details in messages", "Audit trail maintained"],
+          tools: ["Twilio", "Practice Management System"],
+          baselineMinutesPerRun: 120,
+          frequencyPerWeek: 5,
+          roiTimeSavedMinutesPerWeek: 500,
+          roiDollarsPerMonth: 2500,
+        },
+        {
+          title: "Social Media Content Scheduler",
+          description: "Automatically generate and schedule engaging social media posts to maintain consistent online presence.",
+          industryVertical: "Healthcare",
+          scope: "Social",
+          department: "Marketing",
+          level: 2,
+          goals: ["Leads", "Education", "Revenue Growth"],
+          riskRating: "Low" as const,
+          piiFlag: false,
+          dataFlow: "VendorTools" as const,
+          humanInLoop: "Optional" as const,
+          storyToday: "Marketing team spends hours each week creating, designing, and scheduling social media content manually.",
+          storyFuture: "1. Content calendar auto-generated from templates\n2. Stock images and graphics selected\n3. Posts scheduled for optimal times\n4. Staff reviews before publishing\n5. Analytics tracked automatically",
+          controls: ["Brand guidelines enforced", "No medical advice", "Staff approval queue", "Content moderation"],
+          tools: ["Buffer", "Canva", "Meta Business Suite"],
+          baselineMinutesPerRun: 90,
+          frequencyPerWeek: 2,
+          roiTimeSavedMinutesPerWeek: 150,
+          roiDollarsPerMonth: 750,
+        },
+        {
+          title: "Invoice Processing Automation",
+          description: "Automatically extract, validate, and process invoices from suppliers with minimal manual intervention.",
+          industryVertical: "Finance",
+          scope: "Operations",
+          department: "Accounts Payable",
+          level: 3,
+          goals: ["Cost Savings", "Efficiency", "Compliance"],
+          riskRating: "Medium" as const,
+          piiFlag: false,
+          dataFlow: "CloudLLM" as const,
+          humanInLoop: "Required" as const,
+          storyToday: "Staff manually enters invoice data, matches to POs, and routes for approval - prone to errors and delays.",
+          storyFuture: "1. AI extracts data from invoice PDFs\n2. Automatic PO matching\n3. Discrepancies flagged for review\n4. Approval routing based on amount\n5. Integration with accounting system",
+          controls: ["Human review for amounts over threshold", "Duplicate detection", "Audit trail", "Vendor verification"],
+          tools: ["OCR Software", "Accounting System", "Approval Workflow"],
+          baselineMinutesPerRun: 20,
+          frequencyPerWeek: 50,
+          roiTimeSavedMinutesPerWeek: 800,
+          roiDollarsPerMonth: 4000,
+        },
+        {
+          title: "Customer Inquiry Email Responder",
+          description: "AI-powered email triage and response drafting for common customer inquiries.",
+          industryVertical: "Retail",
+          scope: "Email Marketing",
+          department: "Customer Service",
+          level: 3,
+          goals: ["Efficiency", "Customer Retention", "Cost Savings"],
+          riskRating: "Low" as const,
+          piiFlag: true,
+          dataFlow: "CloudLLM" as const,
+          humanInLoop: "Required" as const,
+          storyToday: "Customer service reps manually read, categorize, and respond to each email - often with repetitive answers.",
+          storyFuture: "1. AI categorizes incoming emails\n2. Draft responses generated for common queries\n3. Staff reviews and personalizes responses\n4. Complex issues escalated to specialists\n5. Response templates continuously improved",
+          controls: ["Human approval before sending", "Sentiment analysis for escalation", "PII protection", "Response quality monitoring"],
+          tools: ["Gmail/Outlook", "ChatGPT API", "CRM System"],
+          baselineMinutesPerRun: 10,
+          frequencyPerWeek: 100,
+          roiTimeSavedMinutesPerWeek: 600,
+          roiDollarsPerMonth: 3000,
+        },
+        {
+          title: "Patient Intake Form Digitization",
+          description: "Convert paper-based patient intake to digital forms with automatic data entry into practice systems.",
+          industryVertical: "Podiatry",
+          scope: "Operations",
+          department: "Front Desk",
+          level: 1,
+          goals: ["Efficiency", "Compliance", "Cost Savings"],
+          riskRating: "High" as const,
+          piiFlag: true,
+          dataFlow: "LocalOnly" as const,
+          humanInLoop: "Required" as const,
+          storyToday: "Patients fill paper forms in waiting room. Staff manually enters data into systems, taking 15 minutes per patient.",
+          storyFuture: "1. Patient receives digital form link before visit\n2. Form completed online with validation\n3. Staff reviews for accuracy\n4. Approved data syncs to PMS\n5. Digital consent signatures captured",
+          controls: ["HIPAA-compliant storage", "Data encryption", "Staff verification", "Consent tracking", "Audit logs"],
+          tools: ["JotForm", "Practice Management System"],
+          baselineMinutesPerRun: 15,
+          frequencyPerWeek: 20,
+          roiTimeSavedMinutesPerWeek: 240,
+          roiDollarsPerMonth: 1200,
+        },
+        {
+          title: "Inventory Reorder Alerts",
+          description: "Automated monitoring and alerts when inventory levels fall below reorder thresholds.",
+          industryVertical: "Retail",
+          scope: "Operations",
+          department: "Operations",
+          level: 2,
+          goals: ["Efficiency", "Cost Savings", "Revenue Growth"],
+          riskRating: "Low" as const,
+          piiFlag: false,
+          dataFlow: "VendorTools" as const,
+          humanInLoop: "Optional" as const,
+          storyToday: "Staff manually checks inventory levels weekly and creates purchase orders, often missing low-stock items.",
+          storyFuture: "1. System monitors inventory in real-time\n2. Low stock triggers alerts\n3. Reorder recommendations generated\n4. Staff approves or adjusts orders\n5. POs sent to suppliers automatically",
+          controls: ["Budget limits", "Preferred vendor rules", "Approval thresholds", "Historical demand analysis"],
+          tools: ["Inventory System", "Slack/Email", "Supplier Portal"],
+          baselineMinutesPerRun: 60,
+          frequencyPerWeek: 3,
+          roiTimeSavedMinutesPerWeek: 150,
+          roiDollarsPerMonth: 750,
+        },
+        {
+          title: "Meeting Notes and Action Items",
+          description: "AI-powered transcription and extraction of action items from team meetings.",
+          industryVertical: "Professional Services",
+          scope: "Communications",
+          department: "All Teams",
+          level: 3,
+          goals: ["Efficiency", "Compliance", "Education"],
+          riskRating: "Medium" as const,
+          piiFlag: false,
+          dataFlow: "CloudLLM" as const,
+          humanInLoop: "Optional" as const,
+          storyToday: "Someone takes manual notes during meetings. Action items often get lost. No searchable record of decisions.",
+          storyFuture: "1. Meeting recorded and transcribed\n2. AI extracts key decisions and action items\n3. Summary distributed to attendees\n4. Action items assigned with due dates\n5. Follow-up reminders sent automatically",
+          controls: ["Recording consent required", "Confidential meeting handling", "Retention policies", "Access controls"],
+          tools: ["Zoom/Teams", "Otter.ai", "Slack", "Task Manager"],
+          baselineMinutesPerRun: 30,
+          frequencyPerWeek: 10,
+          roiTimeSavedMinutesPerWeek: 200,
+          roiDollarsPerMonth: 1000,
+        },
+        {
+          title: "Lead Qualification Chatbot",
+          description: "Conversational AI to qualify website leads 24/7 and route hot prospects to sales.",
+          industryVertical: "B2B Services",
+          scope: "Social",
+          department: "Sales",
+          level: 3,
+          goals: ["Leads", "Revenue Growth", "Efficiency"],
+          riskRating: "Low" as const,
+          piiFlag: true,
+          dataFlow: "CloudLLM" as const,
+          humanInLoop: "Required" as const,
+          storyToday: "Website visitors fill contact forms. Sales reps manually qualify leads, many go cold before follow-up.",
+          storyFuture: "1. Chatbot engages visitors in conversation\n2. Qualifying questions asked naturally\n3. Hot leads get instant meeting booking\n4. Warm leads added to nurture sequence\n5. Sales notified of high-priority prospects",
+          controls: ["Human handoff for complex questions", "Data privacy notices", "Bot disclosure", "CRM integration"],
+          tools: ["Intercom/Drift", "ChatGPT", "Calendly", "CRM"],
+          baselineMinutesPerRun: 15,
+          frequencyPerWeek: 30,
+          roiTimeSavedMinutesPerWeek: 360,
+          roiDollarsPerMonth: 1800,
+        },
+      ];
+
+      // Insert each template
+      let insertedCount = 0;
+      for (const template of marketplaceTemplates) {
+        await storage.createMarketplaceUseCase(template);
+        insertedCount++;
+      }
+
+      res.json({ 
+        message: "Marketplace templates seeded successfully",
+        count: insertedCount 
+      });
+    } catch (error) {
+      console.error("Error seeding marketplace:", error);
+      res.status(500).json({ message: "Failed to seed marketplace templates" });
+    }
+  });
+
   return httpServer;
 }
