@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -924,10 +924,13 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
   };
 
   // Auto-fill industry when client is selected
-  const selectedClient = clients.find((c) => c.id === form.watch("clientId"));
-  if (selectedClient && !form.getValues("industryVertical")) {
-    form.setValue("industryVertical", selectedClient.industryVertical);
-  }
+  const watchedClientId = form.watch("clientId");
+  useEffect(() => {
+    const selectedClient = clients.find((c) => c.id === watchedClientId);
+    if (selectedClient && !form.getValues("industryVertical")) {
+      form.setValue("industryVertical", selectedClient.industryVertical);
+    }
+  }, [watchedClientId, clients, form]);
 
   return (
     <Form {...form}>
