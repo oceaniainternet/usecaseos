@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import {
   Sidebar,
   SidebarContent,
@@ -66,17 +66,23 @@ export function AppSidebar() {
     ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || "User"
     : "User";
 
+  const [, setLocation] = useLocation();
+
   const handleLogout = () => {
     logoutMutation.mutate();
+  };
+
+  const handleAccountClick = () => {
+    setLocation("/account");
   };
 
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <a href="/dashboard" className="flex items-center gap-2">
           <img src={solvityLogo} alt="Solvity.ai" className="h-8 w-8" />
           <span className="font-semibold text-lg">Solvity</span>
-        </Link>
+        </a>
       </SidebarHeader>
 
       <SidebarContent>
@@ -91,10 +97,10 @@ export function AppSidebar() {
                     isActive={location === item.url}
                     data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                   >
-                    <Link href={item.url}>
+                    <a href={item.url}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
-                    </Link>
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -113,10 +119,10 @@ export function AppSidebar() {
                     isActive={location === item.url}
                     data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                   >
-                    <Link href={item.url}>
+                    <a href={item.url}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
-                    </Link>
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -125,58 +131,51 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                  data-testid="button-sidebar-user"
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col gap-0.5 leading-none flex-1 text-left">
-                    <span className="font-medium text-sm truncate">{displayName}</span>
-                    {user?.email && (
-                      <span className="text-xs text-muted-foreground truncate">
-                        {user.email}
-                      </span>
-                    )}
-                  </div>
-                  <ChevronUp className="h-4 w-4 ml-auto" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                side="top"
-                className="w-[--radix-popper-anchor-width]"
-              >
-                <DropdownMenuItem 
-                  asChild
-                  className="cursor-pointer" 
-                  data-testid="button-sidebar-account"
-                >
-                  <Link href="/account">
-                    <User className="h-4 w-4 mr-2" />
-                    Account
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={handleLogout}
-                  className="cursor-pointer" 
-                  data-testid="button-sidebar-logout"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarFooter className="p-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="flex items-center gap-3 w-full p-2 rounded-lg hover-elevate text-left"
+              data-testid="button-sidebar-user"
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col gap-0.5 leading-none flex-1">
+                <span className="font-medium text-sm truncate">{displayName}</span>
+                {user?.email && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {user.email}
+                  </span>
+                )}
+              </div>
+              <ChevronUp className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            side="top"
+            className="w-[--radix-popper-anchor-width]"
+          >
+            <DropdownMenuItem 
+              onClick={handleAccountClick}
+              className="cursor-pointer" 
+              data-testid="button-sidebar-account"
+            >
+              <User className="h-4 w-4 mr-2" />
+              Account
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={handleLogout}
+              className="cursor-pointer" 
+              data-testid="button-sidebar-logout"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
   );
