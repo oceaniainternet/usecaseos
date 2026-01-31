@@ -113,6 +113,8 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 
 export default function AdminPage() {
   const [clientDialogOpen, setClientDialogOpen] = useState(false);
+  const [useCaseFormKey, setUseCaseFormKey] = useState(0);
+  const [editUseCaseFormKey, setEditUseCaseFormKey] = useState(0);
   const [useCaseDialogOpen, setUseCaseDialogOpen] = useState(() => {
     if (typeof window !== 'undefined') {
       return sessionStorage.getItem('useCaseDialogOpen') === 'true';
@@ -350,9 +352,10 @@ export default function AdminPage() {
             <Dialog open={useCaseDialogOpen} onOpenChange={(open) => {
               setUseCaseDialogOpen(open);
               if (!open) {
-                // Clear persisted form data when dialog is closed
+                // Clear persisted form data when dialog is closed and increment key to reset form
                 sessionStorage.removeItem('useCaseFormData');
                 sessionStorage.removeItem('useCaseFormGenerating');
+                setUseCaseFormKey(k => k + 1);
               }
             }} modal={true}>
               <DialogTrigger asChild>
@@ -372,7 +375,7 @@ export default function AdminPage() {
                   <DialogTitle>Add New Use Case</DialogTitle>
                   <DialogDescription>Fill in the details to create a new use case</DialogDescription>
                 </DialogHeader>
-                <UseCaseForm clients={clients} onSuccess={() => setUseCaseDialogOpen(false)} />
+                <UseCaseForm key={useCaseFormKey} clients={clients} onSuccess={() => setUseCaseDialogOpen(false)} />
               </DialogContent>
             </Dialog>
           </div>
@@ -455,6 +458,7 @@ export default function AdminPage() {
                       sessionStorage.removeItem('editUseCaseFormData');
                       sessionStorage.removeItem('editUseCaseFormGenerating');
                       setSelectedUseCase(null);
+                      setEditUseCaseFormKey(k => k + 1);
                     }
                   }} modal={true}>
                     <DialogContent 
@@ -470,6 +474,7 @@ export default function AdminPage() {
                       </DialogHeader>
                       {selectedUseCase && (
                         <EditUseCaseForm 
+                          key={editUseCaseFormKey}
                           useCase={selectedUseCase} 
                           clients={clients} 
                           onSuccess={() => {
