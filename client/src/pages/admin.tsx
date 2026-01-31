@@ -990,82 +990,65 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
     }
 
     setIsGenerating(true);
-    // Store pending generation flag
-    sessionStorage.setItem('useCaseFormPendingGeneration', 'true');
     
     try {
-      const res = await apiRequest("POST", "/api/story-generate", {
-        industryVertical: values.industryVertical,
-        department: values.department,
-        taskSummary: values.title,
-        tools: values.tools ? values.tools.split(",").map((t) => t.trim()).filter(Boolean) : [],
-        piiFlag: values.piiFlag,
-        riskRating: values.riskRating,
-        level: values.level,
-        customerFrustrations: values.customerFrustrations || "",
-        storyTodayIsManual: values.storyTodayIsManual || false,
-        existingStoryToday: values.storyToday || "",
+      const res = await fetch("/api/story-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          industryVertical: values.industryVertical,
+          department: values.department,
+          taskSummary: values.title,
+          tools: values.tools ? values.tools.split(",").map((t) => t.trim()).filter(Boolean) : [],
+          piiFlag: values.piiFlag,
+          riskRating: values.riskRating,
+          level: values.level,
+          customerFrustrations: values.customerFrustrations || "",
+          storyTodayIsManual: values.storyTodayIsManual || false,
+          existingStoryToday: values.storyToday || "",
+        }),
       });
+      
+      if (!res.ok) {
+        throw new Error("Failed to generate story");
+      }
+      
       const data = await res.json();
       
-      // Store the AI response in sessionStorage for recovery
-      sessionStorage.setItem('useCaseFormAIResponse', JSON.stringify(data));
+      // Update form values
+      const newStoryToday = data.storyToday || values.storyToday;
+      const newStoryFuture = data.storyFuture || values.storyFuture;
+      const newPersonaStory = data.personaStory || values.personaStory;
+      const newControls = Array.isArray(data.controls) ? data.controls.join("\n") : values.controls;
       
-      // Apply the values with force update
-      if (data.storyToday) {
-        form.setValue("storyToday", data.storyToday, { shouldValidate: true, shouldDirty: true });
-      }
-      if (data.storyFuture) {
-        form.setValue("storyFuture", data.storyFuture, { shouldValidate: true, shouldDirty: true });
-      }
-      if (data.personaStory) {
-        form.setValue("personaStory", data.personaStory, { shouldValidate: true, shouldDirty: true });
-      }
-      if (Array.isArray(data.controls)) {
-        form.setValue("controls", data.controls.join("\n"), { shouldValidate: true, shouldDirty: true });
+      // Update sessionStorage first (so if HMR happens, form reinits with this data)
+      const currentFormData = sessionStorage.getItem('useCaseFormData');
+      if (currentFormData) {
+        try {
+          const parsed = JSON.parse(currentFormData);
+          parsed.storyToday = newStoryToday;
+          parsed.storyFuture = newStoryFuture;
+          parsed.personaStory = newPersonaStory;
+          parsed.controls = newControls;
+          sessionStorage.setItem('useCaseFormData', JSON.stringify(parsed));
+        } catch {}
       }
       
-      // Clear pending flag and stored response on success
-      sessionStorage.removeItem('useCaseFormPendingGeneration');
-      sessionStorage.removeItem('useCaseFormAIResponse');
+      // Now update the form
+      form.setValue("storyToday", newStoryToday, { shouldValidate: true, shouldDirty: true });
+      form.setValue("storyFuture", newStoryFuture, { shouldValidate: true, shouldDirty: true });
+      form.setValue("personaStory", newPersonaStory, { shouldValidate: true, shouldDirty: true });
+      form.setValue("controls", newControls, { shouldValidate: true, shouldDirty: true });
       
       toast({ title: "Story generated successfully" });
     } catch (error) {
       console.error("Story generation error:", error);
-      sessionStorage.removeItem('useCaseFormPendingGeneration');
       toast({ title: "Failed to generate story", variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
   };
-  
-  // Check for pending AI response on mount (in case of HMR during generation)
-  useEffect(() => {
-    const storedResponse = sessionStorage.getItem('useCaseFormAIResponse');
-    if (storedResponse) {
-      try {
-        const data = JSON.parse(storedResponse);
-        if (data.storyToday) {
-          form.setValue("storyToday", data.storyToday, { shouldValidate: true, shouldDirty: true });
-        }
-        if (data.storyFuture) {
-          form.setValue("storyFuture", data.storyFuture, { shouldValidate: true, shouldDirty: true });
-        }
-        if (data.personaStory) {
-          form.setValue("personaStory", data.personaStory, { shouldValidate: true, shouldDirty: true });
-        }
-        if (Array.isArray(data.controls)) {
-          form.setValue("controls", data.controls.join("\n"), { shouldValidate: true, shouldDirty: true });
-        }
-        // Clear the stored response after applying
-        sessionStorage.removeItem('useCaseFormAIResponse');
-        sessionStorage.removeItem('useCaseFormPendingGeneration');
-        toast({ title: "Story generated successfully (recovered)" });
-      } catch {
-        // Ignore parse errors
-      }
-    }
-  }, [form, toast]);
 
   // Auto-fill industry when client is selected
   const watchedClientId = form.watch("clientId");
@@ -1675,78 +1658,65 @@ function EditUseCaseForm({
     }
 
     setIsGenerating(true);
-    sessionStorage.setItem('editUseCaseFormPendingGeneration', 'true');
     
     try {
-      const res = await apiRequest("POST", "/api/story-generate", {
-        industryVertical: values.industryVertical,
-        department: values.department,
-        taskSummary: values.title,
-        tools: values.tools ? values.tools.split(",").map((t) => t.trim()).filter(Boolean) : [],
-        piiFlag: values.piiFlag,
-        riskRating: values.riskRating,
-        level: values.level,
-        customerFrustrations: values.customerFrustrations || "",
-        storyTodayIsManual: values.storyTodayIsManual || false,
-        existingStoryToday: values.storyToday || "",
+      const res = await fetch("/api/story-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          industryVertical: values.industryVertical,
+          department: values.department,
+          taskSummary: values.title,
+          tools: values.tools ? values.tools.split(",").map((t) => t.trim()).filter(Boolean) : [],
+          piiFlag: values.piiFlag,
+          riskRating: values.riskRating,
+          level: values.level,
+          customerFrustrations: values.customerFrustrations || "",
+          storyTodayIsManual: values.storyTodayIsManual || false,
+          existingStoryToday: values.storyToday || "",
+        }),
       });
+      
+      if (!res.ok) {
+        throw new Error("Failed to generate story");
+      }
+      
       const data = await res.json();
       
-      // Store AI response for recovery
-      sessionStorage.setItem('editUseCaseFormAIResponse', JSON.stringify(data));
+      // Update form values
+      const newStoryToday = data.storyToday || values.storyToday;
+      const newStoryFuture = data.storyFuture || values.storyFuture;
+      const newPersonaStory = data.personaStory || values.personaStory;
+      const newControls = Array.isArray(data.controls) ? data.controls.join("\n") : values.controls;
       
-      if (data.storyToday) {
-        form.setValue("storyToday", data.storyToday, { shouldValidate: true, shouldDirty: true });
-      }
-      if (data.storyFuture) {
-        form.setValue("storyFuture", data.storyFuture, { shouldValidate: true, shouldDirty: true });
-      }
-      if (data.personaStory) {
-        form.setValue("personaStory", data.personaStory, { shouldValidate: true, shouldDirty: true });
-      }
-      if (Array.isArray(data.controls)) {
-        form.setValue("controls", data.controls.join("\n"), { shouldValidate: true, shouldDirty: true });
+      // Update sessionStorage first (so if HMR happens, form reinits with this data)
+      const currentFormData = sessionStorage.getItem('editUseCaseFormData');
+      if (currentFormData) {
+        try {
+          const parsed = JSON.parse(currentFormData);
+          parsed.storyToday = newStoryToday;
+          parsed.storyFuture = newStoryFuture;
+          parsed.personaStory = newPersonaStory;
+          parsed.controls = newControls;
+          sessionStorage.setItem('editUseCaseFormData', JSON.stringify(parsed));
+        } catch {}
       }
       
-      sessionStorage.removeItem('editUseCaseFormPendingGeneration');
-      sessionStorage.removeItem('editUseCaseFormAIResponse');
+      // Now update the form
+      form.setValue("storyToday", newStoryToday, { shouldValidate: true, shouldDirty: true });
+      form.setValue("storyFuture", newStoryFuture, { shouldValidate: true, shouldDirty: true });
+      form.setValue("personaStory", newPersonaStory, { shouldValidate: true, shouldDirty: true });
+      form.setValue("controls", newControls, { shouldValidate: true, shouldDirty: true });
       
       toast({ title: "Story generated successfully" });
     } catch (e) {
       console.error("Story generation error:", e);
-      sessionStorage.removeItem('editUseCaseFormPendingGeneration');
       toast({ title: "Failed to generate story", variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
   };
-  
-  // Check for pending AI response on mount (in case of HMR during generation)
-  useEffect(() => {
-    const storedResponse = sessionStorage.getItem('editUseCaseFormAIResponse');
-    if (storedResponse) {
-      try {
-        const data = JSON.parse(storedResponse);
-        if (data.storyToday) {
-          form.setValue("storyToday", data.storyToday, { shouldValidate: true, shouldDirty: true });
-        }
-        if (data.storyFuture) {
-          form.setValue("storyFuture", data.storyFuture, { shouldValidate: true, shouldDirty: true });
-        }
-        if (data.personaStory) {
-          form.setValue("personaStory", data.personaStory, { shouldValidate: true, shouldDirty: true });
-        }
-        if (Array.isArray(data.controls)) {
-          form.setValue("controls", data.controls.join("\n"), { shouldValidate: true, shouldDirty: true });
-        }
-        sessionStorage.removeItem('editUseCaseFormAIResponse');
-        sessionStorage.removeItem('editUseCaseFormPendingGeneration');
-        toast({ title: "Story generated successfully (recovered)" });
-      } catch {
-        // Ignore parse errors
-      }
-    }
-  }, [form, toast]);
 
   return (
     <Form {...form}>
