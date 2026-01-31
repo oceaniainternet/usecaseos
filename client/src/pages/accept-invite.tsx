@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, XCircle, Building } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
-import solvityLogo from "@assets/solvityai_logo_1769819575419.png";
+import solvityLogo from "@assets/solvityai_logo_1769821491441.png";
 
 const acceptSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -161,7 +161,7 @@ export default function AcceptInvitePage() {
           <div className="flex justify-center mb-4">
             <img src={solvityLogo} alt="Solvity.ai" className="h-16 w-16" />
           </div>
-          <div className="flex items-center justify-center gap-2 text-primary mb-2">
+          <div className="flex items-center justify-center gap-2 text-emerald-500 mb-2">
             <Building className="h-6 w-6" />
             <span className="font-semibold">{invitation?.clientName}</span>
           </div>
@@ -255,7 +255,7 @@ export default function AcceptInvitePage() {
 
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white" 
                 disabled={acceptMutation.isPending}
                 data-testid="button-invite-submit"
               >
@@ -267,7 +267,7 @@ export default function AcceptInvitePage() {
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/client-login" className="text-primary hover:underline">
+            <Link href="/client-login" className="text-emerald-500 hover:underline">
               Sign In
             </Link>
           </div>
