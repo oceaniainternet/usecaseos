@@ -188,3 +188,55 @@ Date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric
 
   return { subject, htmlBody, textBody };
 }
+
+export function generatePasswordResetEmail(
+  resetLink: string
+): { subject: string; htmlBody: string; textBody: string } {
+  const subject = "Reset your Solvity.ai password";
+  
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <h1 style="color: #10b981; margin: 0;">Solvity.ai</h1>
+  </div>
+  
+  <div style="background-color: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
+    <h2 style="margin-top: 0; color: #111827;">Reset Your Password</h2>
+    <p>We received a request to reset your password. Click the button below to create a new password:</p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${resetLink}" style="display: inline-block; background-color: #10b981; color: white; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 600;">
+        Reset Password
+      </a>
+    </div>
+    
+    <p style="font-size: 14px; color: #6b7280;">This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.</p>
+  </div>
+  
+  <div style="text-align: center; font-size: 12px; color: #9ca3af;">
+    <p>&copy; ${new Date().getFullYear()} Solvity.ai. All rights reserved.</p>
+  </div>
+</body>
+</html>
+`;
+
+  const textBody = `
+Reset Your Password - Solvity.ai
+
+We received a request to reset your password. Click the link below to create a new password:
+
+${resetLink}
+
+This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.
+
+© ${new Date().getFullYear()} Solvity.ai. All rights reserved.
+`;
+
+  return { subject, htmlBody, textBody };
+}

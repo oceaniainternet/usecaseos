@@ -68,6 +68,19 @@ export const clientInvitations = pgTable("client_invitations", {
   index("client_invitations_client_idx").on(table.clientId),
 ]);
 
+// Password reset tokens
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("password_reset_tokens_token_idx").on(table.token),
+  index("password_reset_tokens_user_idx").on(table.userId),
+]);
+
 // Use cases table
 export const useCases = pgTable("use_cases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -350,6 +363,18 @@ export type UseCaseNoteWithUser = UseCaseNote & {
 
 export type ClientInvitation = typeof clientInvitations.$inferSelect;
 export type InsertClientInvitation = z.infer<typeof insertClientInvitationSchema>;
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+
+// Forgot password schemas
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
 export type MarketplaceUseCaseWithRating = MarketplaceUseCase & {
   averageRating: number;

@@ -9,7 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Loader2, Mail, Lock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Loader2, Mail, Lock, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import solvityLogo from "@assets/solvityai_logo_1769821491441.png";
 
 const loginSchema = z.object({
@@ -17,17 +20,33 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+});
+
 type LoginForm = z.infer<typeof loginSchema>;
+type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>;
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user, loginMutation } = useAuth();
+  const { toast } = useToast();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordSubmitting, setForgotPasswordSubmitting] = useState(false);
+  const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
+    },
+  });
+
+  const forgotPasswordForm = useForm<ForgotPasswordForm>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
     },
   });
 
@@ -42,6 +61,34 @@ export default function AuthPage() {
         setLocation("/dashboard");
       },
     });
+  };
+
+  const onForgotPassword = async (data: ForgotPasswordForm) => {
+    setForgotPasswordSubmitting(true);
+    try {
+      await apiRequest("POST", "/api/forgot-password", data);
+      setForgotPasswordSent(true);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to send reset email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setForgotPasswordSubmitting(false);
+    }
+  };
+
+  const handleForgotPasswordOpen = () => {
+    setShowForgotPassword(true);
+    setForgotPasswordSent(false);
+    forgotPasswordForm.reset();
+  };
+
+  const handleForgotPasswordClose = () => {
+    setShowForgotPassword(false);
+    setForgotPasswordSent(false);
+    forgotPasswordForm.reset();
   };
 
   return (
@@ -103,7 +150,7 @@ export default function AuthPage() {
                           type="button" 
                           className="text-sm text-emerald-600 dark:text-emerald-400"
                           data-testid="button-forgot-password"
-                          onClick={() => {}}
+                          onClick={handleForgotPasswordOpen}
                         >
                           Forgot password?
                         </button>
@@ -193,6 +240,83 @@ export default function AuthPage() {
           </p>
         </div>
       </div>
+
+      <Dialog open={showForgotPassword} onOpenChange={handleForgotPasswordClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset your password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {forgotPasswordSent ? (
+            <div className="text-center py-4 space-y-4">
+              <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto" />
+              <div>
+                <p className="font-medium">Check your email</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  If an account exists with that email, you'll receive a password reset link shortly.
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={handleForgotPasswordClose}
+                data-testid="button-close-forgot-password"
+              >
+                Close
+              </Button>
+            </div>
+          ) : (
+            <Form {...forgotPasswordForm}>
+              <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPassword)} className="space-y-4">
+                <FormField
+                  control={forgotPasswordForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email address</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            type="email" 
+                            placeholder="you@example.com" 
+                            className="pl-10"
+                            data-testid="input-forgot-email"
+                            {...field} 
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={handleForgotPasswordClose}
+                    data-testid="button-cancel-forgot-password"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="flex-1 bg-emerald-500 text-white" 
+                    disabled={forgotPasswordSubmitting}
+                    data-testid="button-send-reset-link"
+                  >
+                    {forgotPasswordSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Send Reset Link
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
