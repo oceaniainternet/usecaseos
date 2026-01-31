@@ -113,11 +113,43 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 
 export default function AdminPage() {
   const [clientDialogOpen, setClientDialogOpen] = useState(false);
-  const [useCaseDialogOpen, setUseCaseDialogOpen] = useState(false);
-  const [editUseCaseDialogOpen, setEditUseCaseDialogOpen] = useState(false);
+  const [useCaseDialogOpen, setUseCaseDialogOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('useCaseDialogOpen') === 'true';
+    }
+    return false;
+  });
+  const [editUseCaseDialogOpen, setEditUseCaseDialogOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('editUseCaseDialogOpen') === 'true';
+    }
+    return false;
+  });
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [selectedUseCase, setSelectedUseCase] = useState<UseCase | null>(null);
+  const [selectedUseCase, setSelectedUseCase] = useState<UseCase | null>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('selectedUseCase');
+      return stored ? JSON.parse(stored) : null;
+    }
+    return null;
+  });
   const { toast } = useToast();
+
+  useEffect(() => {
+    sessionStorage.setItem('useCaseDialogOpen', useCaseDialogOpen ? 'true' : 'false');
+  }, [useCaseDialogOpen]);
+
+  useEffect(() => {
+    sessionStorage.setItem('editUseCaseDialogOpen', editUseCaseDialogOpen ? 'true' : 'false');
+  }, [editUseCaseDialogOpen]);
+
+  useEffect(() => {
+    if (selectedUseCase) {
+      sessionStorage.setItem('selectedUseCase', JSON.stringify(selectedUseCase));
+    } else {
+      sessionStorage.removeItem('selectedUseCase');
+    }
+  }, [selectedUseCase]);
 
   const { data: clients = [], isLoading: clientsLoading } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
@@ -315,7 +347,14 @@ export default function AdminPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Dialog open={useCaseDialogOpen} onOpenChange={setUseCaseDialogOpen} modal={true}>
+            <Dialog open={useCaseDialogOpen} onOpenChange={(open) => {
+              setUseCaseDialogOpen(open);
+              if (!open) {
+                // Clear persisted form data when dialog is closed
+                sessionStorage.removeItem('useCaseFormData');
+                sessionStorage.removeItem('useCaseFormGenerating');
+              }
+            }} modal={true}>
               <DialogTrigger asChild>
                 <Button data-testid="button-add-usecase">
                   <Plus className="h-4 w-4 mr-2" />
@@ -410,7 +449,14 @@ export default function AdminPage() {
                   </Table>
 
                   {/* Edit Use Case Dialog */}
-                  <Dialog open={editUseCaseDialogOpen} onOpenChange={setEditUseCaseDialogOpen} modal={true}>
+                  <Dialog open={editUseCaseDialogOpen} onOpenChange={(open) => {
+                    setEditUseCaseDialogOpen(open);
+                    if (!open) {
+                      sessionStorage.removeItem('editUseCaseFormData');
+                      sessionStorage.removeItem('editUseCaseFormGenerating');
+                      setSelectedUseCase(null);
+                    }
+                  }} modal={true}>
                     <DialogContent 
                       className="max-w-2xl max-h-[90vh] overflow-y-auto"
                       onPointerDownOutside={(e) => e.preventDefault()}
@@ -847,11 +893,25 @@ function ClientForm({ onSuccess }: { onSuccess: () => void }) {
 
 function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () => void }) {
   const { toast } = useToast();
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('useCaseFormGenerating') === 'true';
+    }
+    return false;
+  });
 
-  const form = useForm<UseCaseFormValues>({
-    resolver: zodResolver(useCaseFormSchema),
-    defaultValues: {
+  const getStoredFormValues = (): UseCaseFormValues => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('useCaseFormData');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {
+          // Fall through to defaults
+        }
+      }
+    }
+    return {
       clientId: "",
       title: "",
       goals: [],
@@ -875,8 +935,24 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
       frequencyPerWeek: 0,
       roiTimeSavedMinutesPerWeek: 0,
       roiDollarsPerMonth: 0,
-    },
+    };
+  };
+
+  const form = useForm<UseCaseFormValues>({
+    resolver: zodResolver(useCaseFormSchema),
+    defaultValues: getStoredFormValues(),
   });
+
+  // Persist form data to sessionStorage
+  const formValues = form.watch();
+  useEffect(() => {
+    sessionStorage.setItem('useCaseFormData', JSON.stringify(formValues));
+  }, [formValues]);
+
+  // Persist generating state
+  useEffect(() => {
+    sessionStorage.setItem('useCaseFormGenerating', isGenerating ? 'true' : 'false');
+  }, [isGenerating]);
 
   const createUseCase = useMutation({
     mutationFn: async (data: UseCaseFormValues) => {
@@ -891,6 +967,9 @@ function UseCaseForm({ clients, onSuccess }: { clients: Client[]; onSuccess: () 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/use-cases"] });
       toast({ title: "Use case created successfully" });
+      // Clear persisted form data on success
+      sessionStorage.removeItem('useCaseFormData');
+      sessionStorage.removeItem('useCaseFormGenerating');
       onSuccess();
     },
     onError: () => {
@@ -1451,11 +1530,29 @@ function EditUseCaseForm({
   onSuccess: () => void 
 }) {
   const { toast } = useToast();
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('editUseCaseFormGenerating') === 'true';
+    }
+    return false;
+  });
 
-  const form = useForm<UseCaseFormValues>({
-    resolver: zodResolver(useCaseFormSchema),
-    defaultValues: {
+  const getDefaultValues = (): UseCaseFormValues => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('editUseCaseFormData');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          // Only use stored data if it's for the same use case
+          if (parsed._useCaseId === useCase.id) {
+            return parsed;
+          }
+        } catch {
+          // Fall through to defaults
+        }
+      }
+    }
+    return {
       clientId: String(useCase.clientId),
       title: useCase.title,
       goals: (useCase.goals as string[]) || [],
@@ -1479,8 +1576,24 @@ function EditUseCaseForm({
       frequencyPerWeek: useCase.frequencyPerWeek || 0,
       roiTimeSavedMinutesPerWeek: useCase.roiTimeSavedMinutesPerWeek || 0,
       roiDollarsPerMonth: useCase.roiDollarsPerMonth || 0,
-    },
+    };
+  };
+
+  const form = useForm<UseCaseFormValues>({
+    resolver: zodResolver(useCaseFormSchema),
+    defaultValues: getDefaultValues(),
   });
+
+  // Persist form data to sessionStorage
+  const formValues = form.watch();
+  useEffect(() => {
+    sessionStorage.setItem('editUseCaseFormData', JSON.stringify({ ...formValues, _useCaseId: useCase.id }));
+  }, [formValues, useCase.id]);
+
+  // Persist generating state
+  useEffect(() => {
+    sessionStorage.setItem('editUseCaseFormGenerating', isGenerating ? 'true' : 'false');
+  }, [isGenerating]);
 
   const updateUseCase = useMutation({
     mutationFn: async (data: UseCaseFormValues) => {
@@ -1496,6 +1609,9 @@ function EditUseCaseForm({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/use-cases"] });
       toast({ title: "Use case updated successfully" });
+      // Clear persisted form data on success
+      sessionStorage.removeItem('editUseCaseFormData');
+      sessionStorage.removeItem('editUseCaseFormGenerating');
       onSuccess();
     },
     onError: () => {
