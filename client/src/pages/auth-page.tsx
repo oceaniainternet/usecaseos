@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Loader2, Mail, Lock, Squirrel } from "lucide-react";
+import { Loader2, Mail, Lock } from "lucide-react";
+import solvityLogo from "@assets/solvityai_logo_1769819575419.png";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -52,9 +53,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="p-4 bg-emerald-500 rounded-2xl">
-              <Squirrel className="h-12 w-12 text-white" />
-            </div>
+            <img src={solvityLogo} alt="Solvity.ai" className="h-20 w-20" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Solvity.ai</h1>

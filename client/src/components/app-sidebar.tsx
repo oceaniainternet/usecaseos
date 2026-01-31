@@ -23,10 +23,10 @@ import {
   LayoutDashboard,
   LogOut,
   ChevronUp,
-  Squirrel,
   Shield,
   Store,
 } from "lucide-react";
+import solvityLogo from "@assets/solvityai_logo_1769819575419.png";
 
 const mainNavItems = [
   {
@@ -73,9 +73,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-md bg-emerald-500 flex items-center justify-center">
-            <Squirrel className="h-5 w-5 text-white" />
-          </div>
+          <img src={solvityLogo} alt="Solvity.ai" className="h-8 w-8" />
           <span className="font-semibold text-lg">Solvity</span>
         </Link>
       </SidebarHeader>

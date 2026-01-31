@@ -4,10 +4,10 @@ import {
   LayoutDashboard, 
   Shield, 
   BarChart3, 
-  Squirrel,
   ArrowRight,
   CheckCircle2
 } from "lucide-react";
+import solvityLogo from "@assets/solvityai_logo_1769819575419.png";
 
 export default function LandingPage() {
   return (
@@ -16,9 +16,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-md bg-emerald-500 flex items-center justify-center">
-              <Squirrel className="h-5 w-5 text-white" />
-            </div>
+            <img src={solvityLogo} alt="Solvity.ai" className="h-8 w-8" />
             <span className="font-semibold text-lg">Solvity</span>
           </div>
           <div className="flex items-center gap-2">
@@ -155,9 +153,7 @@ export default function LandingPage() {
       <footer className="py-8 px-4 border-t">
         <div className="container mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-md bg-emerald-500 flex items-center justify-center">
-              <Squirrel className="h-4 w-4 text-white" />
-            </div>
+            <img src={solvityLogo} alt="Solvity.ai" className="h-6 w-6" />
             <span className="font-medium">Solvity</span>
           </div>
           <p className="text-sm text-muted-foreground">
