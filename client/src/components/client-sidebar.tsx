@@ -44,7 +44,7 @@ export function ClientSidebar() {
     },
     onSuccess: () => {
       queryClient.clear();
-      setLocation("/client-login");
+      setLocation("/");
     },
     onError: () => {
       toast({

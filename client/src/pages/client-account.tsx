@@ -42,7 +42,7 @@ export default function ClientAccountPage() {
     },
     onSuccess: () => {
       queryClient.clear();
-      setLocation("/client-login");
+      setLocation("/");
     },
     onError: () => {
       toast({
