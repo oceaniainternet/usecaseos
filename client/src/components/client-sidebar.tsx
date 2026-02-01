@@ -16,6 +16,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import type { Client } from "@shared/schema";
+import solvityLogo from "@assets/solvityai_logo_1769821491441.png";
 
 interface UserClientInfo {
   clientId: string;
@@ -82,10 +83,8 @@ export function ClientSidebar() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <Link href="/client-portal" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <LayoutGrid className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-lg">Client Portal</span>
+          <img src={solvityLogo} alt="Solvity.ai" className="h-8 w-8" />
+          <span className="font-semibold text-lg">Solvity</span>
         </Link>
       </SidebarHeader>
 

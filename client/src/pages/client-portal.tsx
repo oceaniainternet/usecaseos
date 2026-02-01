@@ -16,9 +16,60 @@ import {
   Sparkles,
   ChevronRight
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { UseCase, Client } from "@shared/schema";
 
 type UseCaseWithClient = UseCase & { clientName?: string };
+
+function calculateUseCaseScore(useCase: UseCase): number {
+  let score = 0;
+
+  const roi = useCase.roiDollarsPerMonth || 0;
+  if (roi >= 1000) score += 30;
+  else if (roi >= 500) score += 22;
+  else if (roi >= 100) score += 12;
+  else if (roi > 0) score += 5;
+
+  if (useCase.level === 1) score += 20;
+  else if (useCase.level === 2) score += 12;
+  else if (useCase.level === 3) score += 5;
+
+  if (useCase.riskRating === "None") score += 15;
+  else if (useCase.riskRating === "Low") score += 12;
+  else if (useCase.riskRating === "Medium") score += 6;
+  else if (useCase.riskRating === "High") score += 2;
+
+  const timeSaved = useCase.roiTimeSavedMinutesPerWeek || 0;
+  if (timeSaved >= 120) score += 15;
+  else if (timeSaved >= 60) score += 12;
+  else if (timeSaved >= 30) score += 8;
+  else if (timeSaved > 0) score += 4;
+
+  const goals = (useCase.goals as string[]) || [];
+  const goalCount = goals.length;
+  if (goalCount >= 4) score += 20;
+  else if (goalCount >= 3) score += 15;
+  else if (goalCount >= 2) score += 10;
+  else if (goalCount >= 1) score += 5;
+
+  return Math.min(score, 100);
+}
+
+function getScoreColor(score: number): string {
+  if (score >= 80) return "bg-green-500 text-white";
+  if (score >= 60) return "bg-emerald-500 text-white";
+  if (score >= 40) return "bg-amber-500 text-white";
+  if (score >= 20) return "bg-orange-500 text-white";
+  return "bg-red-500 text-white";
+}
+
+function getScorePulseColor(score: number): string {
+  if (score >= 80) return "shadow-green-500/50";
+  if (score >= 60) return "shadow-emerald-500/50";
+  if (score >= 40) return "shadow-amber-500/50";
+  if (score >= 20) return "shadow-orange-500/50";
+  return "shadow-red-500/50";
+}
 
 function getLevelBadge(level: number | null) {
   if (!level) return null;
@@ -179,51 +230,59 @@ export default function ClientPortalPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {useCases?.map((useCase) => (
-            <Link key={useCase.id} href={`/client-portal/use-case/${useCase.id}`}>
-              <Card 
-                className="hover-elevate cursor-pointer h-full"
-                data-testid={`card-usecase-${useCase.id}`}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base line-clamp-2">{useCase.title}</CardTitle>
-                    {useCase.roiDollarsPerMonth && useCase.roiDollarsPerMonth > 0 && (
-                      <Badge variant="secondary" className="shrink-0">
-                        ${useCase.roiDollarsPerMonth}/mo
-                      </Badge>
+          {useCases?.map((useCase) => {
+            const score = calculateUseCaseScore(useCase);
+            return (
+              <Link key={useCase.id} href={`/client-portal/use-case/${useCase.id}`}>
+                <Card 
+                  className="hover-elevate cursor-pointer h-full relative"
+                  data-testid={`card-usecase-${useCase.id}`}
+                >
+                  <div 
+                    className={cn(
+                      "absolute -top-3 -right-3 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-lg animate-pulse",
+                      getScoreColor(score),
+                      getScorePulseColor(score)
                     )}
+                    data-testid={`score-${useCase.id}`}
+                    title={`Score: ${score}/100`}
+                  >
+                    {score}
                   </div>
-                  <CardDescription className="line-clamp-1">
-                    {useCase.department || useCase.clientName || "General"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {getLevelBadge(useCase.level)}
-                    {getStatusBadge(useCase.status)}
-                    {getRiskBadge(useCase.riskRating)}
-                  </div>
-                  
-                  {useCase.personaStory && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                      {useCase.personaStory}
-                    </p>
-                  )}
-
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="text-muted-foreground">
-                      {useCase.roiTimeSavedMinutesPerWeek 
-                        ? `${useCase.roiTimeSavedMinutesPerWeek} min/week saved`
-                        : "ROI not calculated"
-                      }
+                  <CardHeader className="pb-3 pr-12">
+                    <CardTitle className="text-base line-clamp-2">{useCase.title}</CardTitle>
+                    <CardDescription className="line-clamp-1">
+                      {useCase.department || useCase.clientName || "General"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {getLevelBadge(useCase.level)}
+                      {getStatusBadge(useCase.status)}
+                      {getRiskBadge(useCase.riskRating)}
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                    
+                    {useCase.personaStory && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                        {useCase.personaStory}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{useCase.roiTimeSavedMinutesPerWeek || 0} min/wk</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <DollarSign className="h-3.5 w-3.5" />
+                        <span>${useCase.roiDollarsPerMonth || 0}/mo</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
