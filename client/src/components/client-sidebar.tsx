@@ -68,7 +68,7 @@ export function ClientSidebar() {
     },
     onSuccess: () => {
       queryClient.clear();
-      setLocation("/");
+      window.location.href = "/";
     },
     onError: () => {
       toast({
