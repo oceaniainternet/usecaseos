@@ -10,33 +10,56 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { LayoutGrid, Store, User, LogOut } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { LayoutGrid, Store, User, LogOut, Users } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import type { Client } from "@shared/schema";
 
-const menuItems = [
+interface UserClientInfo {
+  clientId: string;
+  clientTeamRole: string | null;
+}
+
+const baseMenuItems = [
   {
     title: "Dashboard",
     url: "/client-portal",
     icon: LayoutGrid,
+    adminOnly: false,
+  },
+  {
+    title: "Team",
+    url: "/client-team",
+    icon: Users,
+    adminOnly: true,
   },
   {
     title: "Marketplace",
     url: "/client-marketplace",
     icon: Store,
+    adminOnly: false,
   },
   {
     title: "Account",
     url: "/client-account",
     icon: User,
+    adminOnly: false,
   },
 ];
 
 export function ClientSidebar() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
+
+  const { data: userClientsData } = useQuery<UserClientInfo[]>({
+    queryKey: ["/api/client-portal/user-clients"],
+  });
+
+  const isAdmin = userClientsData?.some(uc => uc.clientTeamRole === "Admin") ?? false;
+
+  const menuItems = baseMenuItems.filter(item => !item.adminOnly || isAdmin);
 
   const logoutMutation = useMutation({
     mutationFn: async () => {

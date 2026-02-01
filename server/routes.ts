@@ -1066,6 +1066,25 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
     }
   });
 
+  // Get user-client relationships with roles (for sidebar admin check)
+  app.get("/api/client-portal/user-clients", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const userClients = await storage.getUserClients(userId);
+      res.json(userClients.map(uc => ({
+        clientId: uc.clientId,
+        clientTeamRole: uc.clientTeamRole,
+      })));
+    } catch (error) {
+      console.error("Error fetching user-clients:", error);
+      res.status(500).json({ message: "Failed to fetch user-clients" });
+    }
+  });
+
   // Client approval endpoint - update approval status and send email notification
   app.post("/api/client-portal/use-cases/:id/approval", isAuthenticated, async (req, res) => {
     try {
