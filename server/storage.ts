@@ -79,12 +79,14 @@ export interface IStorage {
   getMarketplaceScopes(): Promise<string[]>;
 
   // Client Invitations
-  createClientInvitation(email: string, clientId: string, invitedByUserId: string): Promise<ClientInvitation>;
+  createClientInvitation(email: string, clientId: string, invitedByUserId: string, clientTeamRole?: string): Promise<ClientInvitation>;
   getClientInvitationByToken(token: string): Promise<ClientInvitation | undefined>;
   getClientInvitationsByClient(clientId: string): Promise<ClientInvitation[]>;
   getAllClientInvitations(): Promise<ClientInvitation[]>;
   acceptClientInvitation(token: string, userId: string): Promise<ClientInvitation>;
   deleteClientInvitation(id: string): Promise<boolean>;
+  getClientTeamMembers(clientId: string): Promise<Array<{ user: User; userClient: UserClient }>>;
+  updateUserClientRole(userId: string, clientId: string, clientTeamRole: string): Promise<UserClient>;
 
   // Client Favorites (marketplace roadmap)
   addClientFavorite(marketplaceUseCaseId: string, userId: string, clientId: string): Promise<ClientFavorite>;
@@ -348,7 +350,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Client Invitations
-  async createClientInvitation(email: string, clientId: string, invitedByUserId: string): Promise<ClientInvitation> {
+  async createClientInvitation(email: string, clientId: string, invitedByUserId: string, clientTeamRole?: string): Promise<ClientInvitation> {
     const token = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     
@@ -358,6 +360,7 @@ export class DatabaseStorage implements IStorage {
       token,
       invitedByUserId,
       expiresAt,
+      clientTeamRole: clientTeamRole as any || "Admin",
     }).returning();
     return invitation;
   }
@@ -390,11 +393,12 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Invitation has expired");
     }
 
-    // Link user to client
+    // Link user to client with the team role from the invitation
     await this.addUserToClient({
       userId,
       clientId: invitation.clientId,
       role: "CLIENT",
+      clientTeamRole: invitation.clientTeamRole as any || "Admin",
     });
 
     // Mark invitation as accepted
@@ -409,6 +413,29 @@ export class DatabaseStorage implements IStorage {
   async deleteClientInvitation(id: string): Promise<boolean> {
     await db.delete(clientInvitations).where(eq(clientInvitations.id, id));
     return true;
+  }
+
+  async getClientTeamMembers(clientId: string): Promise<Array<{ user: User; userClient: UserClient }>> {
+    const results = await db
+      .select({
+        user: users,
+        userClient: userClients,
+      })
+      .from(userClients)
+      .innerJoin(users, eq(userClients.userId, users.id))
+      .where(eq(userClients.clientId, clientId))
+      .orderBy(userClients.createdAt);
+    
+    return results;
+  }
+
+  async updateUserClientRole(userId: string, clientId: string, clientTeamRole: string): Promise<UserClient> {
+    const [updated] = await db
+      .update(userClients)
+      .set({ clientTeamRole: clientTeamRole as any })
+      .where(and(eq(userClients.userId, userId), eq(userClients.clientId, clientId)))
+      .returning();
+    return updated;
   }
 
   // Client Favorites

@@ -688,7 +688,8 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
       const invitation = await storage.createClientInvitation(
         parsed.data.email,
         parsed.data.clientId,
-        userId
+        userId,
+        req.body.clientTeamRole || "Admin"
       );
 
       // Get client name for the email
@@ -803,6 +804,169 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
     } catch (error) {
       console.error("Error accepting invitation:", error);
       res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
+
+  // Get team members for a client (client admins only)
+  app.get("/api/clients/:clientId/team", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { clientId } = req.params;
+
+      // Check if user has access to this client and is an admin
+      const userClientMapping = await storage.getUserClients(userId);
+      const hasAccess = userClientMapping.find(uc => uc.clientId === clientId);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Only admins can manage team
+      if (hasAccess.clientTeamRole !== "Admin") {
+        return res.status(403).json({ message: "Only team admins can view team members" });
+      }
+
+      const teamMembers = await storage.getClientTeamMembers(clientId);
+      
+      // Get pending invitations for this client
+      const pendingInvitations = await storage.getClientInvitationsByClient(clientId);
+      const pendingTeamInvitations = pendingInvitations.filter(inv => inv.status === "pending");
+
+      res.json({ teamMembers, pendingInvitations: pendingTeamInvitations });
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ message: "Failed to fetch team members" });
+    }
+  });
+
+  // Client admin invites a team member
+  app.post("/api/clients/:clientId/team/invite", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { clientId } = req.params;
+      const { email, clientTeamRole } = req.body;
+
+      if (!email || !clientTeamRole) {
+        return res.status(400).json({ message: "Email and role are required" });
+      }
+
+      // Validate role
+      const validRoles = ["Admin", "Adoption Lead", "Use Case Owner", "Pilot User", "Observer"];
+      if (!validRoles.includes(clientTeamRole)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      // Check if user has access to this client and is an admin
+      const userClientMapping = await storage.getUserClients(userId);
+      const hasAccess = userClientMapping.find(uc => uc.clientId === clientId);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if (hasAccess.clientTeamRole !== "Admin") {
+        return res.status(403).json({ message: "Only team admins can invite members" });
+      }
+
+      // Create invitation with team role
+      const invitation = await storage.createClientInvitation(email, clientId, userId, clientTeamRole);
+
+      // Get client name for the email
+      const client = await storage.getClient(clientId);
+      const clientName = client?.name || 'your organization';
+
+      // Generate the full invite link
+      const baseUrl = process.env.NODE_ENV === 'production'
+        ? 'https://solvity.ai'
+        : `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+      const inviteLink = `${baseUrl}/accept-invite?token=${invitation.token}`;
+
+      // Send invitation email
+      const { subject, htmlBody, textBody } = generateInvitationEmail(clientName, inviteLink);
+      const emailSent = await sendEmail({
+        to: email,
+        subject,
+        htmlBody,
+        textBody,
+      });
+
+      res.status(201).json({
+        ...invitation,
+        inviteLink: `/accept-invite?token=${invitation.token}`,
+        emailSent,
+      });
+    } catch (error) {
+      console.error("Error inviting team member:", error);
+      res.status(500).json({ message: "Failed to invite team member" });
+    }
+  });
+
+  // Update team member role
+  app.patch("/api/clients/:clientId/team/:memberId/role", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { clientId, memberId } = req.params;
+      const { clientTeamRole } = req.body;
+
+      if (!clientTeamRole) {
+        return res.status(400).json({ message: "Role is required" });
+      }
+
+      // Validate role
+      const validRoles = ["Admin", "Adoption Lead", "Use Case Owner", "Pilot User", "Observer"];
+      if (!validRoles.includes(clientTeamRole)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      // Check if user has access to this client and is an admin
+      const userClientMapping = await storage.getUserClients(userId);
+      const hasAccess = userClientMapping.find(uc => uc.clientId === clientId);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if (hasAccess.clientTeamRole !== "Admin") {
+        return res.status(403).json({ message: "Only team admins can update roles" });
+      }
+
+      // Can't demote yourself from admin (prevent lockout)
+      if (memberId === userId && clientTeamRole !== "Admin") {
+        return res.status(400).json({ message: "You cannot change your own role" });
+      }
+
+      const updated = await storage.updateUserClientRole(memberId, clientId, clientTeamRole);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating team member role:", error);
+      res.status(500).json({ message: "Failed to update role" });
+    }
+  });
+
+  // Remove team member
+  app.delete("/api/clients/:clientId/team/:memberId", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { clientId, memberId } = req.params;
+
+      // Check if user has access to this client and is an admin
+      const userClientMapping = await storage.getUserClients(userId);
+      const hasAccess = userClientMapping.find(uc => uc.clientId === clientId);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if (hasAccess.clientTeamRole !== "Admin") {
+        return res.status(403).json({ message: "Only team admins can remove members" });
+      }
+
+      // Can't remove yourself
+      if (memberId === userId) {
+        return res.status(400).json({ message: "You cannot remove yourself from the team" });
+      }
+
+      await storage.removeUserFromClient(memberId, clientId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing team member:", error);
+      res.status(500).json({ message: "Failed to remove team member" });
     }
   });
 
