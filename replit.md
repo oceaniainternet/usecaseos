@@ -56,6 +56,15 @@ Solvity.ai is an invite-only SaaS web application exclusively for Galaxis Consul
 - id, useCaseId, userId, content, createdAt, updatedAt
 - Enables collaboration between clients and consultants on each use case
 
+### User Clients (Team Membership)
+- id, userId, clientId, role (CLIENT/ADMIN/CONSULTANT)
+- clientTeamRole: Admin, Adoption Lead, Use Case Owner, Pilot User, Observer
+- Defines team hierarchy within client organizations
+
+### Client Invitations
+- id, email, clientId, token, status, invitedByUserId, expiresAt, clientTeamRole
+- Stores pending team invitations with assigned roles
+
 ## API Endpoints
 - `GET /api/clients` - List all clients
 - `POST /api/clients` - Create a client
@@ -74,6 +83,11 @@ Solvity.ai is an invite-only SaaS web application exclusively for Galaxis Consul
 - `DELETE /api/use-case-notes/:noteId` - Delete a note
 - `POST /api/story-generate` - Generate story content (template-based)
 - `POST /api/admin/seed-marketplace` - Populate marketplace templates (consultant-only access)
+- `GET /api/clients/:clientId/team` - Get team members and pending invitations (admin-only)
+- `POST /api/clients/:clientId/team/invite` - Invite team member with role (admin-only)
+- `PATCH /api/clients/:clientId/team/:memberId/role` - Update team member role (admin-only)
+- `DELETE /api/clients/:clientId/team/:memberId` - Remove team member (admin-only)
+- `GET /api/client-portal/user-clients` - Get user's client relationships with roles
 
 ## Authentication
 Uses username/password authentication with Passport.js local strategy. Routes:
@@ -157,6 +171,26 @@ Cloned use cases:
 - Appear in your Dashboard with status "Proposed"
 - Are fully editable - customize for your specific needs
 - Maintain all ROI metrics and workflow details from template
+
+### Team Management (/client-team)
+Client organization admins can invite and manage team members:
+- **Invite Team Members**: Send email invitations with assigned roles
+- **Role Assignment**: Admin, Adoption Lead, Use Case Owner, Pilot User, Observer
+- **Role Management**: Update existing team member roles
+- **Remove Members**: Remove team members from the organization
+- **Pending Invitations**: View and cancel pending invitations
+
+Role Hierarchy:
+- **Admin**: Full access to manage team and all use cases
+- **Adoption Lead**: Manage use case adoption and track progress
+- **Use Case Owner**: Own and manage assigned use cases
+- **Pilot User**: Participate in pilot testing
+- **Observer**: View-only access to use cases
+
+Security:
+- Only Admin role users can see the "Team" navigation link
+- All team management endpoints enforce admin-only access
+- Admins cannot demote or remove themselves (prevents lockout)
 
 ### Admin Panel (/admin)
 - **Clients Tab**: Create/view clients
