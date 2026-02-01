@@ -18,6 +18,7 @@ export const dataFlowEnum = pgEnum("data_flow", ["LocalOnly", "VendorTools", "Cl
 export const humanInLoopEnum = pgEnum("human_in_loop", ["Required", "Optional", "None"]);
 export const useCaseGoalEnum = pgEnum("use_case_goal", ["Leads", "Fewer Phone Calls", "Education", "Cost Savings", "Customer Retention", "Efficiency", "Compliance", "Revenue Growth", "Other"]);
 export const clientApprovalStatusEnum = pgEnum("client_approval_status", ["Pending", "Approved", "Needs Discussion", "Not Now"]);
+export const clientTeamRoleEnum = pgEnum("client_team_role", ["Admin", "Adoption Lead", "Use Case Owner", "Pilot User", "Observer"]);
 
 // Users table for username/password authentication
 export const users = pgTable("users", {
@@ -45,6 +46,7 @@ export const userClients = pgTable("user_clients", {
   userId: varchar("user_id").notNull(),
   clientId: varchar("client_id").notNull(),
   role: userRoleEnum("role").notNull().default("CLIENT"),
+  clientTeamRole: clientTeamRoleEnum("client_team_role").default("Observer"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("user_clients_user_idx").on(table.userId),
@@ -59,6 +61,7 @@ export const clientInvitations = pgTable("client_invitations", {
   token: text("token").notNull().unique(),
   status: invitationStatusEnum("status").notNull().default("pending"),
   invitedByUserId: varchar("invited_by_user_id").notNull(),
+  clientTeamRole: clientTeamRoleEnum("client_team_role").default("Observer"),
   expiresAt: timestamp("expires_at").notNull(),
   acceptedAt: timestamp("accepted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
