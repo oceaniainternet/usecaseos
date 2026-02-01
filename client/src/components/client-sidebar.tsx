@@ -21,6 +21,7 @@ import solvityLogo from "@assets/solvityai_logo_1769821491441.png";
 interface UserClientInfo {
   clientId: string;
   clientTeamRole: string | null;
+  role: string | null;
 }
 
 const baseMenuItems = [
@@ -58,9 +59,11 @@ export function ClientSidebar() {
     queryKey: ["/api/client-portal/user-clients"],
   });
 
-  const isAdmin = userClientsData?.some(uc => uc.clientTeamRole === "Admin") ?? false;
+  const canManageTeam = userClientsData?.some(
+    uc => uc.clientTeamRole === "Admin" || uc.role === "CLIENT"
+  ) ?? false;
 
-  const menuItems = baseMenuItems.filter(item => !item.adminOnly || isAdmin);
+  const menuItems = baseMenuItems.filter(item => !item.adminOnly || canManageTeam);
 
   const logoutMutation = useMutation({
     mutationFn: async () => {

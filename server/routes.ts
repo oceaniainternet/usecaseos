@@ -820,8 +820,8 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
         return res.status(403).json({ message: "Access denied" });
       }
 
-      // Only admins can manage team
-      if (hasAccess.clientTeamRole !== "Admin") {
+      // Only admins or CLIENT role (organization owners) can manage team
+      if (hasAccess.clientTeamRole !== "Admin" && hasAccess.role !== "CLIENT") {
         return res.status(403).json({ message: "Only team admins can view team members" });
       }
 
@@ -862,7 +862,7 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
         return res.status(403).json({ message: "Access denied" });
       }
 
-      if (hasAccess.clientTeamRole !== "Admin") {
+      if (hasAccess.clientTeamRole !== "Admin" && hasAccess.role !== "CLIENT") {
         return res.status(403).json({ message: "Only team admins can invite members" });
       }
 
@@ -923,7 +923,7 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
         return res.status(403).json({ message: "Access denied" });
       }
 
-      if (hasAccess.clientTeamRole !== "Admin") {
+      if (hasAccess.clientTeamRole !== "Admin" && hasAccess.role !== "CLIENT") {
         return res.status(403).json({ message: "Only team admins can update roles" });
       }
 
@@ -953,7 +953,7 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
         return res.status(403).json({ message: "Access denied" });
       }
 
-      if (hasAccess.clientTeamRole !== "Admin") {
+      if (hasAccess.clientTeamRole !== "Admin" && hasAccess.role !== "CLIENT") {
         return res.status(403).json({ message: "Only team admins can remove members" });
       }
 
@@ -1078,6 +1078,7 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
       res.json(userClients.map(uc => ({
         clientId: uc.clientId,
         clientTeamRole: uc.clientTeamRole,
+        role: uc.role,
       })));
     } catch (error) {
       console.error("Error fetching user-clients:", error);
