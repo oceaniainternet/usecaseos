@@ -10,7 +10,9 @@ export const auditActionEnum = pgEnum("audit_action", [
   "invite_accepted", 
   "source_uploaded", 
   "source_deleted",
-  "chat_created", 
+  "chat_created",
+  "chat_shared",
+  "chat_unshared",
   "brief_created", 
   "brief_shared",
   "brief_unshared"

@@ -79,7 +79,7 @@ export default function SolvyBriefsPage() {
   });
 
   const { data: briefs = [], isLoading: briefsLoading } = useQuery<SolvyBrief[]>({
-    queryKey: ["/api/solvy/briefs", selectedClientId],
+    queryKey: [`/api/solvy/briefs?clientId=${selectedClientId}`],
     enabled: !!selectedClientId,
   });
 
@@ -88,7 +88,7 @@ export default function SolvyBriefsPage() {
       await apiRequest("DELETE", `/api/solvy/briefs/${briefId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/solvy/briefs", selectedClientId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/solvy/briefs?clientId=${selectedClientId}`] });
       if (selectedBriefId) {
         setSelectedBriefId(null);
       }
@@ -105,7 +105,7 @@ export default function SolvyBriefsPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/solvy/briefs", selectedClientId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/solvy/briefs?clientId=${selectedClientId}`] });
     },
     onError: () => {
       toast({ title: "Failed to update visibility", variant: "destructive" });

@@ -160,6 +160,24 @@ export default function SolvyChatPage() {
     },
   });
 
+  const generateBriefMutation = useMutation({
+    mutationFn: async ({ conversationId, title }: { conversationId: string; title: string }) => {
+      const res = await apiRequest("POST", "/api/solvy/briefs", {
+        clientId: selectedClientId,
+        conversationId,
+        title,
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Solution brief created!", description: "View it in the Solution Briefs page" });
+      queryClient.invalidateQueries({ queryKey: [`/api/solvy/briefs?clientId=${selectedClientId}`] });
+    },
+    onError: () => {
+      toast({ title: "Failed to generate brief", variant: "destructive" });
+    },
+  });
+
   useEffect(() => {
     if (clients.length > 0 && !selectedClientId) {
       setSelectedClientId(clients[0].id);
@@ -429,31 +447,55 @@ export default function SolvyChatPage() {
                         {modeConfig[currentConversation.mode].label}
                       </Badge>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() =>
-                        toggleVisibilityMutation.mutate({
-                          conversationId: currentConversation.id,
-                          visibility:
-                            currentConversation.visibility === "private" ? "workspace" : "private",
-                        })
-                      }
-                      data-testid="button-toggle-visibility"
-                    >
-                      {currentConversation.visibility === "workspace" ? (
-                        <>
-                          <Globe className="h-4 w-4" />
-                          Shared
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="h-4 w-4" />
-                          Private
-                        </>
+                    <div className="flex items-center gap-2">
+                      {currentConversation.mode === "draft_brief" && currentConversation.messages && currentConversation.messages.length > 0 && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="gap-2"
+                          onClick={() =>
+                            generateBriefMutation.mutate({
+                              conversationId: currentConversation.id,
+                              title: currentConversation.title || "Solution Brief",
+                            })
+                          }
+                          disabled={generateBriefMutation.isPending}
+                          data-testid="button-generate-brief"
+                        >
+                          {generateBriefMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileText className="h-4 w-4" />
+                          )}
+                          Generate Brief
+                        </Button>
                       )}
-                    </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() =>
+                          toggleVisibilityMutation.mutate({
+                            conversationId: currentConversation.id,
+                            visibility:
+                              currentConversation.visibility === "private" ? "workspace" : "private",
+                          })
+                        }
+                        data-testid="button-toggle-visibility"
+                      >
+                        {currentConversation.visibility === "workspace" ? (
+                          <>
+                            <Globe className="h-4 w-4" />
+                            Shared
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="h-4 w-4" />
+                            Private
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 )}
 
