@@ -50,10 +50,15 @@ function rateLimit(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-async function checkWorkspaceAccess(userId: string, clientId: string): Promise<{ hasAccess: boolean; isAdmin: boolean; role: string | null }> {
+async function checkWorkspaceAccess(userId: string, clientId: string): Promise<{ hasAccess: boolean; isAdmin: boolean; isViewer: boolean; canWrite: boolean; role: string | null }> {
   const userClient = await storage.getUserClientRole(userId, clientId);
+  
   if (!userClient) {
-    return { hasAccess: false, isAdmin: false, role: null };
+    const allUserClients = await storage.getUserClients(userId);
+    if (allUserClients.length === 0) {
+      return { hasAccess: true, isAdmin: true, isViewer: false, canWrite: true, role: "Consultant" };
+    }
+    return { hasAccess: false, isAdmin: false, isViewer: false, canWrite: false, role: null };
   }
   
   const isAdmin = userClient.role === "ADMIN" || 
@@ -62,7 +67,9 @@ async function checkWorkspaceAccess(userId: string, clientId: string): Promise<{
   
   const isViewer = userClient.clientTeamRole === "Observer";
   
-  return { hasAccess: true, isAdmin, role: userClient.clientTeamRole };
+  const canWrite = !isViewer;
+  
+  return { hasAccess: true, isAdmin, isViewer, canWrite, role: userClient.clientTeamRole };
 }
 
 function getSystemPrompt(mode: string, workspaceName: string): string {
@@ -222,6 +229,57 @@ export function registerSolvyRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching conversation:", error);
       res.status(500).json({ error: "Failed to fetch conversation" });
+    }
+  });
+
+  app.patch("/api/solvy/conversations/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const conversationId = req.params.id;
+      
+      const conversation = await solvyStorage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      
+      if (conversation.userId !== user.id) {
+        return res.status(403).json({ error: "You can only edit your own conversations" });
+      }
+      
+      const { visibility, title } = req.body;
+      const updates: any = {};
+      
+      if (visibility && (visibility === "private" || visibility === "workspace")) {
+        updates.visibility = visibility;
+      }
+      
+      if (title) {
+        updates.title = title;
+      }
+      
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: "No valid updates provided" });
+      }
+      
+      const updated = await solvyStorage.updateConversation(conversationId, updates);
+      
+      if (visibility) {
+        const action = visibility === "workspace" ? "chat_shared" : "chat_unshared";
+        await solvyStorage.createAuditLog({
+          clientId: conversation.clientId,
+          userId: user.id,
+          action,
+          targetType: "conversation",
+          targetId: conversationId,
+          metadata: { visibility },
+          ipAddress: req.ip || null,
+        });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating conversation:", error);
+      res.status(500).json({ error: "Failed to update conversation" });
     }
   });
 

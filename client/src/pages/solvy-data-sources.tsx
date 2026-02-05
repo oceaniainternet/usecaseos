@@ -91,21 +91,21 @@ export default function SolvyDataSourcesPage() {
   });
 
   const { data: dataSources = [], isLoading: sourcesLoading } = useQuery<DataSource[]>({
-    queryKey: ["/api/solvy/data-sources", selectedClientId],
+    queryKey: ["/api/solvy/sources", selectedClientId],
     enabled: !!selectedClientId,
   });
 
   const { data: chunks = [], isLoading: chunksLoading } = useQuery<DataSourceChunk[]>({
-    queryKey: ["/api/solvy/data-sources", selectedSourceId, "chunks"],
+    queryKey: ["/api/solvy/sources", selectedSourceId, "chunks"],
     enabled: !!selectedSourceId,
   });
 
   const deleteSourceMutation = useMutation({
     mutationFn: async (sourceId: string) => {
-      await apiRequest("DELETE", `/api/solvy/data-sources/${sourceId}`);
+      await apiRequest("DELETE", `/api/solvy/sources/${sourceId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/solvy/data-sources", selectedClientId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/solvy/sources", selectedClientId] });
       if (selectedSourceId) {
         setSelectedSourceId(null);
       }
@@ -146,7 +146,7 @@ export default function SolvyDataSourcesPage() {
       formData.append("file", file);
       formData.append("clientId", selectedClientId);
 
-      const response = await fetch("/api/solvy/data-sources/upload", {
+      const response = await fetch("/api/solvy/sources", {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -157,7 +157,7 @@ export default function SolvyDataSourcesPage() {
         throw new Error(error.error || "Upload failed");
       }
 
-      queryClient.invalidateQueries({ queryKey: ["/api/solvy/data-sources", selectedClientId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/solvy/sources", selectedClientId] });
       toast({ title: "File uploaded successfully" });
     } catch (error: any) {
       toast({
