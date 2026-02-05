@@ -66,6 +66,7 @@ export interface IStorage {
 
   // User-Client mappings
   getUserClients(userId: string): Promise<UserClient[]>;
+  getUserClientRole(userId: string, clientId: string): Promise<UserClient | undefined>;
   addUserToClient(mapping: InsertUserClient): Promise<UserClient>;
   removeUserFromClient(userId: string, clientId: string): Promise<boolean>;
 
@@ -212,6 +213,12 @@ export class DatabaseStorage implements IStorage {
   // User-Client mappings
   async getUserClients(userId: string): Promise<UserClient[]> {
     return await db.select().from(userClients).where(eq(userClients.userId, userId));
+  }
+
+  async getUserClientRole(userId: string, clientId: string): Promise<UserClient | undefined> {
+    const [result] = await db.select().from(userClients)
+      .where(and(eq(userClients.userId, userId), eq(userClients.clientId, clientId)));
+    return result;
   }
 
   async addUserToClient(mapping: InsertUserClient): Promise<UserClient> {

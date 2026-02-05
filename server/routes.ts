@@ -7,6 +7,7 @@ import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcrypt";
 import { sendEmail, generateInvitationEmail, generateApprovalEmail } from "./email";
+import { registerSolvyRoutes } from "./solvy-routes";
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -180,6 +181,9 @@ export async function registerRoutes(
 ): Promise<Server> {
   // Setup authentication (username/password auth with passport)
   setupAuth(app);
+
+  // Register Solvy AI assistant routes
+  registerSolvyRoutes(app);
 
   // Clients API
   app.get("/api/clients", isAuthenticated, async (req, res) => {
