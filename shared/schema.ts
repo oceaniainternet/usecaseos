@@ -9,6 +9,9 @@ export * from "./models/auth";
 // Re-export chat models
 export * from "./models/chat";
 
+// Re-export Solvy AI assistant models
+export * from "./models/solvy";
+
 // Enums
 export const userRoleEnum = pgEnum("user_role", ["ADMIN", "CLIENT"]);
 export const invitationStatusEnum = pgEnum("invitation_status", ["pending", "accepted", "expired"]);
