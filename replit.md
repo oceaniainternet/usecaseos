@@ -146,12 +146,14 @@ When a client clicks any approval button:
 - Email notification is sent to hello@solvity.ai with use case details and client decision
 - Only CLIENT role users can submit approvals (not admins/consultants)
 
-### Kanban Board (/client-kanban)
-Visual workflow management for tracking use case progress:
-- **Drag-and-Drop**: Move use cases between status columns
+### Dashboard with Kanban Board (/client-portal)
+The client dashboard combines stats overview with a visual Kanban workflow board:
+- **Stats Cards**: Total use cases, Time saved weekly, Monthly savings
+- **Kanban Board**: Drag-and-drop status management integrated into the dashboard
 - **Status Columns**: Proposed, Approved, Building, Live, Optimising, Paused
 - **Card Details**: Score badge, level, risk rating, ROI, time saved per week
 - **Real-time Updates**: Status changes sync immediately via secure API
+- **Card Links**: Click any card to view full use case details
 
 Security:
 - Client users can only update use cases within their organization

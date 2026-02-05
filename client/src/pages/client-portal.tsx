@@ -1,25 +1,36 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useRef } from "react";
 import { 
   LayoutGrid, 
   Building, 
   Clock, 
   DollarSign, 
   AlertTriangle, 
-  CheckCircle2,
-  Pause,
-  Wrench,
-  Lightbulb,
-  Sparkles,
-  ChevronRight
+  Shield,
+  CheckCircle,
+  HelpCircle,
+  XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UseCase, Client } from "@shared/schema";
 
 type UseCaseWithClient = UseCase & { clientName?: string };
+
+const KANBAN_COLUMNS = [
+  { id: "Proposed", title: "Proposed", color: "bg-slate-500" },
+  { id: "Approved", title: "Approved", color: "bg-blue-500" },
+  { id: "Building", title: "Building", color: "bg-amber-500" },
+  { id: "Live", title: "Live", color: "bg-emerald-500" },
+  { id: "Optimising", title: "Optimising", color: "bg-purple-500" },
+  { id: "Paused", title: "Paused", color: "bg-gray-400" },
+];
 
 function calculateUseCaseScore(useCase: UseCase): number {
   let score = 0;
@@ -63,69 +74,183 @@ function getScoreColor(score: number): string {
   return "bg-red-500 text-white";
 }
 
-function getScorePulseColor(score: number): string {
-  if (score >= 80) return "shadow-green-500/50";
-  if (score >= 60) return "shadow-emerald-500/50";
-  if (score >= 40) return "shadow-amber-500/50";
-  if (score >= 20) return "shadow-orange-500/50";
-  return "shadow-red-500/50";
-}
-
 function getLevelBadge(level: number | null) {
   if (!level) return null;
-  const colors = {
-    1: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-    2: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-    3: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  const labels: Record<number, { label: string; color: string }> = {
+    1: { label: "Level 1", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
+    2: { label: "Level 2", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
+    3: { label: "Level 3", color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200" },
   };
-  const labels = {
-    1: "Level 1 - Tool Assisted",
-    2: "Level 2 - No-code Automation",
-    3: "Level 3 - AI Embedded",
-  };
-  return (
-    <Badge className={`${colors[level as 1 | 2 | 3]} border-0`}>
-      {labels[level as 1 | 2 | 3]}
-    </Badge>
-  );
-}
-
-function getStatusBadge(status: string | null) {
-  if (!status) return null;
-  const configs: Record<string, { icon: any; color: string }> = {
-    "Proposed": { icon: Lightbulb, color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
-    "Approved": { icon: CheckCircle2, color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
-    "Building": { icon: Wrench, color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
-    "Live": { icon: Sparkles, color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
-    "Optimising": { icon: Sparkles, color: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
-    "Paused": { icon: Pause, color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400" },
-  };
-  const config = configs[status] || configs["Proposed"];
-  const Icon = config.icon;
-  return (
-    <Badge className={`${config.color} border-0`}>
-      <Icon className="w-3 h-3 mr-1" />
-      {status}
-    </Badge>
-  );
+  const config = labels[level];
+  return config ? (
+    <Badge className={cn("text-xs", config.color)}>{config.label}</Badge>
+  ) : null;
 }
 
 function getRiskBadge(risk: string | null) {
   if (!risk || risk === "None") return null;
   const colors: Record<string, string> = {
-    "Low": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    "Medium": "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-    "High": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    Low: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+    Medium: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+    High: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
   };
   return (
-    <Badge className={`${colors[risk] || colors["Low"]} border-0`}>
-      <AlertTriangle className="w-3 h-3 mr-1" />
-      {risk} Risk
+    <Badge className={cn("text-xs", colors[risk] || "")}>
+      <AlertTriangle className="h-3 w-3 mr-1" />
+      {risk}
     </Badge>
   );
 }
 
+function getApprovalIcon(status: string | null) {
+  switch (status) {
+    case "Approved":
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    case "NeedsDiscussion":
+      return <HelpCircle className="h-4 w-4 text-amber-500" />;
+    case "NotNow":
+      return <XCircle className="h-4 w-4 text-gray-400" />;
+    default:
+      return null;
+  }
+}
+
+interface KanbanCardProps {
+  useCase: UseCase;
+  index: number;
+}
+
+function KanbanCard({ useCase, index }: KanbanCardProps) {
+  const score = calculateUseCaseScore(useCase);
+  const [, setLocation] = useLocation();
+  const isDraggingRef = useRef(false);
+  
+  const handleClick = () => {
+    if (!isDraggingRef.current) {
+      setLocation(`/client-portal/use-case/${useCase.id}`);
+    }
+  };
+  
+  return (
+    <Draggable draggableId={useCase.id} index={index}>
+      {(provided, snapshot) => {
+        isDraggingRef.current = snapshot.isDragging;
+        
+        return (
+          <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            onClick={handleClick}
+            className={cn(
+              "mb-2 cursor-pointer transition-shadow",
+              snapshot.isDragging && "shadow-lg"
+            )}
+          >
+            <Card 
+              className={cn(
+                "hover-elevate relative",
+                snapshot.isDragging && "ring-2 ring-primary"
+              )}
+              data-testid={`kanban-card-${useCase.id}`}
+            >
+              <div 
+                className={cn(
+                  "absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-md",
+                  getScoreColor(score)
+                )}
+                title={`Score: ${score}/100`}
+              >
+                {score}
+              </div>
+              <CardHeader className="p-3 pb-1 pr-10">
+                <CardTitle className="text-sm font-medium line-clamp-2">
+                  {useCase.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-1">
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {getLevelBadge(useCase.level)}
+                  {getRiskBadge(useCase.riskRating)}
+                  {useCase.piiFlag && (
+                    <Badge variant="outline" className="text-xs">
+                      <Shield className="h-3 w-3 mr-1" />
+                      PII
+                    </Badge>
+                  )}
+                </div>
+                
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>{useCase.roiTimeSavedMinutesPerWeek || 0}m</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <DollarSign className="h-3 w-3" />
+                      <span>${useCase.roiDollarsPerMonth || 0}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {getApprovalIcon(useCase.clientApprovalStatus)}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      }}
+    </Draggable>
+  );
+}
+
+interface KanbanColumnProps {
+  column: typeof KANBAN_COLUMNS[0];
+  useCases: UseCase[];
+}
+
+function KanbanColumn({ column, useCases }: KanbanColumnProps) {
+  return (
+    <div className="flex-shrink-0 w-64">
+      <div className="mb-3 flex items-center gap-2">
+        <div className={cn("w-3 h-3 rounded-full", column.color)} />
+        <h3 className="font-semibold text-sm">{column.title}</h3>
+        <Badge variant="secondary" className="ml-auto text-xs">
+          {useCases.length}
+        </Badge>
+      </div>
+      <Droppable droppableId={column.id}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={cn(
+              "min-h-[300px] p-2 rounded-lg transition-colors",
+              snapshot.isDraggingOver 
+                ? "bg-primary/10 border-2 border-dashed border-primary" 
+                : "bg-muted/50 border-2 border-transparent"
+            )}
+            data-testid={`kanban-column-${column.id}`}
+          >
+            {useCases.map((useCase, index) => (
+              <KanbanCard key={useCase.id} useCase={useCase} index={index} />
+            ))}
+            {provided.placeholder}
+            {useCases.length === 0 && !snapshot.isDraggingOver && (
+              <div className="text-center text-muted-foreground text-sm py-8">
+                No use cases
+              </div>
+            )}
+          </div>
+        )}
+      </Droppable>
+    </div>
+  );
+}
+
 export default function ClientPortalPage() {
+  const { toast } = useToast();
+
   const { data: useCases, isLoading: useCasesLoading } = useQuery<UseCaseWithClient[]>({
     queryKey: ["/api/client-portal/use-cases"],
   });
@@ -134,9 +259,49 @@ export default function ClientPortalPage() {
     queryKey: ["/api/client-portal/clients"],
   });
 
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      return apiRequest("PATCH", `/api/client-portal/use-cases/${id}/status`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/client-portal/use-cases"] });
+      toast({
+        title: "Status updated",
+        description: "Use case moved successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update status",
+        variant: "destructive",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/client-portal/use-cases"] });
+    },
+  });
+
+  const handleDragEnd = (result: DropResult) => {
+    const { destination, source, draggableId } = result;
+    
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+    
+    if (destination.droppableId !== source.droppableId) {
+      updateStatusMutation.mutate({
+        id: draggableId,
+        status: destination.droppableId,
+      });
+    }
+  };
+
   const totalTimeSaved = useCases?.reduce((sum, uc) => sum + (uc.roiTimeSavedMinutesPerWeek || 0), 0) || 0;
   const totalMonthlySavings = useCases?.reduce((sum, uc) => sum + (uc.roiDollarsPerMonth || 0), 0) || 0;
   const liveCount = useCases?.filter(uc => uc.status === "Live" || uc.status === "Optimising").length || 0;
+
+  const useCasesByStatus = KANBAN_COLUMNS.reduce((acc, column) => {
+    acc[column.id] = useCases?.filter(uc => uc.status === column.id) || [];
+    return acc;
+  }, {} as Record<string, UseCase[]>);
 
   if (useCasesLoading || clientsLoading) {
     return (
@@ -146,9 +311,12 @@ export default function ClientPortalPage() {
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-48" />
+        <div className="flex gap-4 overflow-x-auto">
+          {KANBAN_COLUMNS.map((col) => (
+            <div key={col.id} className="flex-shrink-0 w-64">
+              <Skeleton className="h-6 w-24 mb-3" />
+              <Skeleton className="h-[300px] w-full" />
+            </div>
           ))}
         </div>
       </div>
@@ -212,9 +380,8 @@ export default function ClientPortalPage() {
       </div>
 
       <div>
-        <h2 className="text-lg font-semibold mb-2">Your Use Cases</h2>
         <p className="text-sm text-muted-foreground">
-          Click on a use case to view full details
+          Drag use cases between columns to update their status
         </p>
       </div>
 
@@ -229,61 +396,17 @@ export default function ClientPortalPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {useCases?.map((useCase) => {
-            const score = calculateUseCaseScore(useCase);
-            return (
-              <Link key={useCase.id} href={`/client-portal/use-case/${useCase.id}`}>
-                <Card 
-                  className="hover-elevate cursor-pointer h-full relative"
-                  data-testid={`card-usecase-${useCase.id}`}
-                >
-                  <div 
-                    className={cn(
-                      "absolute -top-3 -right-3 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-lg animate-pulse",
-                      getScoreColor(score),
-                      getScorePulseColor(score)
-                    )}
-                    data-testid={`score-${useCase.id}`}
-                    title={`Score: ${score}/100`}
-                  >
-                    {score}
-                  </div>
-                  <CardHeader className="pb-3 pr-12">
-                    <CardTitle className="text-base line-clamp-2">{useCase.title}</CardTitle>
-                    <CardDescription className="line-clamp-1">
-                      {useCase.department || useCase.clientName || "General"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {getLevelBadge(useCase.level)}
-                      {getStatusBadge(useCase.status)}
-                      {getRiskBadge(useCase.riskRating)}
-                    </div>
-                    
-                    {useCase.personaStory && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                        {useCase.personaStory}
-                      </p>
-                    )}
-
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5" />
-                        <span>{useCase.roiTimeSavedMinutesPerWeek || 0} min/wk</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <DollarSign className="h-3.5 w-3.5" />
-                        <span>${useCase.roiDollarsPerMonth || 0}/mo</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {KANBAN_COLUMNS.map((column) => (
+              <KanbanColumn
+                key={column.id}
+                column={column}
+                useCases={useCasesByStatus[column.id]}
+              />
+            ))}
+          </div>
+        </DragDropContext>
       )}
     </div>
   );
