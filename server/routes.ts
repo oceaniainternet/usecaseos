@@ -1168,6 +1168,52 @@ Make the story authentic, warm, and compelling - suitable for presenting to clie
     }
   });
 
+  // Client portal endpoint to update use case status (for Kanban board)
+  const validStatuses = ["Proposed", "Approved", "Building", "Live", "Optimising", "Paused"];
+  
+  app.patch("/api/client-portal/use-cases/:id/status", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const useCaseId = req.params.id;
+      const { status } = req.body;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Validate status
+      if (!status || !validStatuses.includes(status)) {
+        return res.status(400).json({ message: "Invalid status value" });
+      }
+
+      const useCase = await storage.getUseCase(useCaseId);
+      
+      if (!useCase) {
+        return res.status(404).json({ message: "Use case not found" });
+      }
+
+      // Verify user has access to this use case
+      const userClients = await storage.getUserClients(userId);
+      
+      // Consultants have no client associations - they can manage all clients
+      // Client users must have access to the specific client organization
+      const isConsultant = userClients.length === 0;
+      const hasClientAccess = userClients.some(uc => uc.clientId === useCase.clientId);
+      
+      if (!isConsultant && !hasClientAccess) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Update only the status field
+      const updatedUseCase = await storage.updateUseCase(useCaseId, { status });
+      
+      res.json(updatedUseCase);
+    } catch (error) {
+      console.error("Error updating use case status:", error);
+      res.status(500).json({ message: "Failed to update status" });
+    }
+  });
+
   // Admin endpoint to seed marketplace templates (for production environment)
   app.post("/api/admin/seed-marketplace", isAuthenticated, async (req, res) => {
     try {

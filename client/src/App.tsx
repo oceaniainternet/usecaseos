@@ -26,6 +26,7 @@ import ClientUseCaseDetailPage from "@/pages/client-use-case-detail";
 import ClientAccountPage from "@/pages/client-account";
 import ClientMarketplacePage from "@/pages/client-marketplace";
 import ClientTeamPage from "@/pages/client-team";
+import ClientKanbanPage from "@/pages/client-kanban";
 import AccountPage from "@/pages/account";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
@@ -98,6 +99,7 @@ function ClientAuthenticatedRoutes() {
       <Switch>
         <Route path="/client-portal" component={ClientPortalPage} />
         <Route path="/client-portal/use-case/:id" component={ClientUseCaseDetailPage} />
+        <Route path="/client-kanban" component={ClientKanbanPage} />
         <Route path="/client-marketplace" component={ClientMarketplacePage} />
         <Route path="/client-team" component={ClientTeamPage} />
         <Route path="/client-account" component={ClientAccountPage} />
@@ -143,6 +145,7 @@ function Router() {
         <Switch>
           <Route path="/client-portal" component={ClientPortalPage} />
           <Route path="/client-portal/use-case/:id" component={ClientUseCaseDetailPage} />
+          <Route path="/client-kanban" component={ClientKanbanPage} />
           <Route path="/client-marketplace" component={ClientMarketplacePage} />
           <Route path="/client-team" component={ClientTeamPage} />
           <Route path="/client-account" component={ClientAccountPage} />
@@ -157,6 +160,7 @@ function Router() {
     <Switch>
       <Route path="/client-portal" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-portal/:rest*" component={() => <ClientAuthenticatedRoutes />} />
+      <Route path="/client-kanban" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-marketplace" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-team" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-account" component={() => <ClientAuthenticatedRoutes />} />
