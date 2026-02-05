@@ -26,6 +26,9 @@ import {
   Shield,
   Store,
   User,
+  Bot,
+  FileText,
+  Database,
 } from "lucide-react";
 import solvityLogo from "@assets/solvityai_logo_1769821491441.png";
 
@@ -39,6 +42,24 @@ const mainNavItems = [
     title: "Marketplace",
     url: "/marketplace",
     icon: Store,
+  },
+];
+
+const solvyNavItems = [
+  {
+    title: "Solvy Chat",
+    url: "/solvy",
+    icon: Bot,
+  },
+  {
+    title: "Solution Briefs",
+    url: "/solvy/briefs",
+    icon: FileText,
+  },
+  {
+    title: "Data Sources",
+    url: "/solvy/data-sources",
+    icon: Database,
   },
 ];
 
@@ -99,6 +120,28 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
+                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                  >
+                    <a href={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>AI Assistant</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {solvyNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === item.url || location.startsWith(item.url + "/")}
                     data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                   >
                     <a href={item.url}>

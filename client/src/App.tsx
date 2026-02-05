@@ -27,6 +27,10 @@ import ClientAccountPage from "@/pages/client-account";
 import ClientMarketplacePage from "@/pages/client-marketplace";
 import ClientTeamPage from "@/pages/client-team";
 import AccountPage from "@/pages/account";
+import SolvyChatPage from "@/pages/solvy-chat";
+import SolvyBriefsPage from "@/pages/solvy-briefs";
+import SolvyDataSourcesPage from "@/pages/solvy-data-sources";
+import ClientSolvyPage from "@/pages/client-solvy";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const style = {
@@ -86,6 +90,9 @@ function AuthenticatedRoutes() {
         <Route path="/use-cases/:id" component={UseCaseDetailPage} />
         <Route path="/admin" component={AdminPage} />
         <Route path="/account" component={AccountPage} />
+        <Route path="/solvy" component={SolvyChatPage} />
+        <Route path="/solvy/briefs" component={SolvyBriefsPage} />
+        <Route path="/solvy/data-sources" component={SolvyDataSourcesPage} />
         <Route component={NotFound} />
       </Switch>
     </AuthenticatedLayout>
@@ -98,6 +105,7 @@ function ClientAuthenticatedRoutes() {
       <Switch>
         <Route path="/client-portal" component={ClientPortalPage} />
         <Route path="/client-portal/use-case/:id" component={ClientUseCaseDetailPage} />
+        <Route path="/client-solvy" component={ClientSolvyPage} />
         <Route path="/client-marketplace" component={ClientMarketplacePage} />
         <Route path="/client-team" component={ClientTeamPage} />
         <Route path="/client-account" component={ClientAccountPage} />
@@ -143,6 +151,7 @@ function Router() {
         <Switch>
           <Route path="/client-portal" component={ClientPortalPage} />
           <Route path="/client-portal/use-case/:id" component={ClientUseCaseDetailPage} />
+          <Route path="/client-solvy" component={ClientSolvyPage} />
           <Route path="/client-marketplace" component={ClientMarketplacePage} />
           <Route path="/client-team" component={ClientTeamPage} />
           <Route path="/client-account" component={ClientAccountPage} />
@@ -157,6 +166,7 @@ function Router() {
     <Switch>
       <Route path="/client-portal" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-portal/:rest*" component={() => <ClientAuthenticatedRoutes />} />
+      <Route path="/client-solvy" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-marketplace" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-team" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-account" component={() => <ClientAuthenticatedRoutes />} />

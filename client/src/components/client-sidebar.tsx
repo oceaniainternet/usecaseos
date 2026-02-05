@@ -10,7 +10,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { LayoutGrid, Store, User, LogOut, Users } from "lucide-react";
+import { LayoutGrid, Store, User, LogOut, Users, Bot } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,12 @@ const baseMenuItems = [
     title: "Dashboard",
     url: "/client-portal",
     icon: LayoutGrid,
+    adminOnly: false,
+  },
+  {
+    title: "Solvy AI",
+    url: "/client-solvy",
+    icon: Bot,
     adminOnly: false,
   },
   {
