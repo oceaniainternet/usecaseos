@@ -31,6 +31,8 @@ import SolvyChatPage from "@/pages/solvy-chat";
 import SolvyBriefsPage from "@/pages/solvy-briefs";
 import SolvyDataSourcesPage from "@/pages/solvy-data-sources";
 import ClientSolvyPage from "@/pages/client-solvy";
+import ClientBriefsPage from "@/pages/client-briefs";
+import ClientDataSourcesPage from "@/pages/client-data-sources";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const style = {
@@ -106,6 +108,8 @@ function ClientAuthenticatedRoutes() {
         <Route path="/client-portal" component={ClientPortalPage} />
         <Route path="/client-portal/use-case/:id" component={ClientUseCaseDetailPage} />
         <Route path="/client-solvy" component={ClientSolvyPage} />
+        <Route path="/client-briefs" component={ClientBriefsPage} />
+        <Route path="/client-data-sources" component={ClientDataSourcesPage} />
         <Route path="/client-marketplace" component={ClientMarketplacePage} />
         <Route path="/client-team" component={ClientTeamPage} />
         <Route path="/client-account" component={ClientAccountPage} />
@@ -152,6 +156,8 @@ function Router() {
           <Route path="/client-portal" component={ClientPortalPage} />
           <Route path="/client-portal/use-case/:id" component={ClientUseCaseDetailPage} />
           <Route path="/client-solvy" component={ClientSolvyPage} />
+          <Route path="/client-briefs" component={ClientBriefsPage} />
+          <Route path="/client-data-sources" component={ClientDataSourcesPage} />
           <Route path="/client-marketplace" component={ClientMarketplacePage} />
           <Route path="/client-team" component={ClientTeamPage} />
           <Route path="/client-account" component={ClientAccountPage} />
@@ -167,6 +173,8 @@ function Router() {
       <Route path="/client-portal" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-portal/:rest*" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-solvy" component={() => <ClientAuthenticatedRoutes />} />
+      <Route path="/client-briefs" component={() => <ClientAuthenticatedRoutes />} />
+      <Route path="/client-data-sources" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-marketplace" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-team" component={() => <ClientAuthenticatedRoutes />} />
       <Route path="/client-account" component={() => <ClientAuthenticatedRoutes />} />
