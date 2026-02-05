@@ -88,6 +88,7 @@ Solvity.ai is an invite-only SaaS web application exclusively for Galaxis Consul
 - `PATCH /api/clients/:clientId/team/:memberId/role` - Update team member role (admin-only)
 - `DELETE /api/clients/:clientId/team/:memberId` - Remove team member (admin-only)
 - `GET /api/client-portal/user-clients` - Get user's client relationships with roles
+- `PATCH /api/client-portal/use-cases/:id/status` - Update use case status (for Kanban board)
 
 ## Authentication
 Uses username/password authentication with Passport.js local strategy. Routes:
@@ -144,6 +145,20 @@ When a client clicks any approval button:
 - Use case is updated with clientApprovalStatus, timestamp, and user ID
 - Email notification is sent to hello@solvity.ai with use case details and client decision
 - Only CLIENT role users can submit approvals (not admins/consultants)
+
+### Kanban Board (/client-kanban)
+Visual workflow management for tracking use case progress:
+- **Drag-and-Drop**: Move use cases between status columns
+- **Status Columns**: Proposed, Approved, Building, Live, Optimising, Paused
+- **Card Details**: Score badge, level, risk rating, ROI, time saved per week
+- **Real-time Updates**: Status changes sync immediately via secure API
+
+Security:
+- Client users can only update use cases within their organization
+- Consultants can update all use cases (system administrators)
+- Status validation ensures only valid workflow transitions
+
+Uses @hello-pangea/dnd library for drag-and-drop functionality.
 
 ### Value Wheel (Interactive Business Value Visualization)
 Located on the Overview tab, the Value Wheel shows how the use case drives business outcomes:
